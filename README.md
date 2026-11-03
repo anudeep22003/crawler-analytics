@@ -55,6 +55,34 @@ npm run build     # Production build
 With Deno installed, `deno check supabase/functions/hello-world/index.ts`
 checks the function separately: it runs in Deno, while Next.js uses Node.js.
 
+## Headless bot user-agent checks
+
+```sh
+npx playwright install chromium # Once after npm ci; repeat after Playwright upgrades
+npm run test:bots
+```
+
+Playwright starts Next.js if needed, or reuses the server on port 3000 locally.
+Supabase and Docker are not required for these tests. Each of the 11 signatures
+from the brief gets a fresh browser context in headless Chromium. Tests assert
+the navigation request's `User-Agent` header and `navigator.userAgent`.
+
+The list reporter prints each test's duration and the total; failures exit nonzero.
+Tests run sequentially with one worker. To include command startup overhead:
+
+```sh
+time npm run test:bots
+```
+
+Example measured locally with Next.js already running: **11 passed in 3.1s**,
+**3.42s wall time**, with individual tests taking **119–175ms**. Server startup
+and first compilation can add time when Next.js is not already running.
+
+These are synthetic user-agent checks, not emulations of actual crawler behavior.
+`Google-Extended` and `Applebot-Extended` are included for spec coverage even though
+they are robots.txt control tokens, not separate crawler HTTP identities.
+`Claude-Web` comes from the brief's classification example.
+
 ## Deploy later
 
 1. Create a hosted Supabase project, then deploy the function:
