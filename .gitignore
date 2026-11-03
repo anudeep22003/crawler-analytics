@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+.pnp.*
+
+# Next.js and build output
+.next/
+out/
+build/
+dist/
+.vercel/
+
+# TypeScript generated files
+*.tsbuildinfo
+next-env.d.ts
+
+# Local environment and secrets
+.env*
+!.env.example
+!.env.*.example
+
+# Supabase local state (keep migrations and config.toml tracked)
+supabase/.branches/
+supabase/.temp/
+
+# Tests
+coverage/
+playwright-report/
+test-results/
+
+# Logs
+*.log
+
+# Operating system files
+.DS_Store
+Thumbs.db
