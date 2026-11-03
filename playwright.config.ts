@@ -5,13 +5,17 @@ export default defineConfig({
   workers: 1,
   reporter: "list",
   use: {
-    browserName: "chromium",
     headless: true,
-    baseURL: "http://localhost:3000",
+    baseURL: "http://127.0.0.1:3001",
   },
+  projects: [
+    { name: "chromium", use: { browserName: "chromium" } },
+    { name: "firefox", use: { browserName: "firefox" } },
+    { name: "webkit", use: { browserName: "webkit" } },
+  ],
   webServer: {
-    command: "npm run dev",
-    url: "http://localhost:3000",
-    reuseExistingServer: !process.env.CI,
+    command: "node tests/fixtures/customer-site/server.mjs",
+    url: "http://127.0.0.1:3001",
+    reuseExistingServer: false,
   },
 });

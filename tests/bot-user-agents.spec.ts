@@ -27,6 +27,9 @@ for (const userAgent of botUserAgents) {
         "Navigation should return an HTTP response",
       ).not.toBeNull();
       expect(response!.ok()).toBe(true);
+      await expect(
+        page.getByRole("heading", { name: "Customer website", exact: true }),
+      ).toBeVisible();
       expect(await response!.request().headerValue("user-agent")).toBe(
         userAgent,
       );
