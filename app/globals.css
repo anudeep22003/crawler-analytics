@@ -1,0 +1,53 @@
+:root {
+  font-family: Arial, Helvetica, sans-serif;
+  color: #182b29;
+  background: #f7f8f5;
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  max-width: 640px;
+  margin: 15vh auto;
+  padding: 24px;
+}
+
+.eyebrow {
+  color: #526a65;
+  font-size: 14px;
+}
+
+h1 {
+  font-size: 48px;
+  letter-spacing: -2px;
+}
+
+button {
+  margin-top: 16px;
+  border: 0;
+  border-radius: 8px;
+  padding: 12px 20px;
+  background: #205f50;
+  color: white;
+  font: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+pre {
+  padding: 20px;
+  border: 1px solid #d4ddd7;
+  border-radius: 8px;
+  background: white;
+  overflow-x: auto;
+}
+
+[role="alert"] {
+  color: #a22929;
+}
