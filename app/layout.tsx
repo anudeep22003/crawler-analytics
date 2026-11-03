@@ -6,8 +6,8 @@ import { cn } from "@/lib/utils";
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
-  title: "Crawler Analytics · Hello world",
-  description: "Our first Next.js and Supabase connection.",
+  title: "Crawler Analytics",
+  description: "Sign in to your crawler analytics account.",
 };
 
 export default function RootLayout({

@@ -1,10 +1,12 @@
 # Pixel Crawler Analytics
 
-First working slice: a Next.js page calls a Supabase Edge Function. Clicking
-**Say hello** logs `Hello world` in the browser console, invokes the function,
-and displays its JSON response: `{"message":"Hello world"}`. The function also
-logs the greeting in its own terminal. Email/password authentication is available
-at `/login`; application database tables are not introduced yet.
+The public entry point at `/` displays the email/password login page, also
+available at `/login`. Future application pages will require an authenticated
+session. Application database tables are not introduced yet.
+
+Authentication state and actions live in `hooks/use-auth.ts`; the login page
+renders the form and account view. The original greeting Edge Function remains
+available as a standalone local smoke check.
 
 ## Email/password authentication
 
@@ -57,10 +59,9 @@ npm run functions:serve
 npm run dev
 ```
 
-Open <http://localhost:3000>, open the browser console, and click **Say hello**.
-The page calls the function directly on port 54321; its CORS handling permits
-the browser request. This greeting endpoint is intentionally public
-(`verify_jwt = false`) and requires no API key.
+Open <http://localhost:3000> to sign in or create an account. When using hosted
+Supabase Auth, only Next.js needs to run; local Docker and the Edge Function are
+optional. The greeting endpoint is public and requires no API key.
 
 To check the function independently:
 
@@ -68,7 +69,7 @@ To check the function independently:
 curl --fail-with-body -X POST http://127.0.0.1:54321/functions/v1/hello-world
 ```
 
-If the page reports a network error, check Docker and the function terminal.
+For local function errors, check Docker and the function terminal.
 After changing `.env.local`, restart Next.js. Stop the terminal processes with
 Ctrl+C and stop the project's containers with `npx supabase stop`.
 
@@ -135,7 +136,7 @@ they are robots.txt control tokens, not separate crawler HTTP identities.
    NEXT_PUBLIC_HELLO_FUNCTION_URL=https://YOUR_PROJECT_REF.supabase.co/functions/v1/hello-world
    ```
 
-3. Deploy and repeat the button check. `NEXT_PUBLIC_` values are embedded at
+3. Deploy and verify the login flow. `NEXT_PUBLIC_` values are embedded at
    build time, so changing the URL requires rebuilding/redeploying. This URL
    is public; never put a Supabase secret/service-role key in a public variable.
 
