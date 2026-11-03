@@ -58,14 +58,20 @@ checks the function separately: it runs in Deno, while Next.js uses Node.js.
 ## Headless bot user-agent checks
 
 ```sh
-npx playwright install chromium # Once after npm ci; repeat after Playwright upgrades
+npx playwright install chromium firefox webkit # Repeat after Playwright upgrades
 npm run test:bots
 ```
 
-Playwright starts Next.js if needed, or reuses the server on port 3000 locally.
-Supabase and Docker are not required for these tests. Each of the 11 signatures
-from the brief gets a fresh browser context in headless Chromium. Tests assert
-the navigation request's `User-Agent` header and `navigator.userAgent`.
+Playwright starts a tiny Node.js server at `http://127.0.0.1:3001` and stops it
+after the run. It serves `tests/fixtures/customer-site/index.html`, representing
+a customer website on a separate origin from the dashboard and collector.
+Port 3001 must be free; an existing server is deliberately not reused.
+Next.js, Supabase, and Docker are not required for these tests.
+
+Each of the 11 signatures gets a fresh browser context in Chromium, Firefox,
+and WebKit: **33 headless tests**. Tests assert the fixture page loads, the
+navigation request's `User-Agent` header, and `navigator.userAgent`.
+The fixture has no tracking snippet yet, so this does not test collector CORS.
 
 The list reporter prints each test's duration and the total; failures exit nonzero.
 Tests run sequentially with one worker. To include command startup overhead:
@@ -74,9 +80,12 @@ Tests run sequentially with one worker. To include command startup overhead:
 time npm run test:bots
 ```
 
-Example measured locally with Next.js already running: **11 passed in 3.1s**,
-**3.42s wall time**, with individual tests taking **119–175ms**. Server startup
-and first compilation can add time when Next.js is not already running.
+Example measured locally: **33 passed in 12.5s**, **12.87s wall time**, including
+fixture server startup and shutdown. Browser installation is excluded. Individual
+tests took 41–185ms in Chromium, 124–653ms in Firefox, and 142–579ms in WebKit.
+Timing varies with the machine and browser startup overhead.
+
+To run just one engine: `npm run test:bots -- --project=firefox`.
 
 These are synthetic user-agent checks, not emulations of actual crawler behavior.
 `Google-Extended` and `Applebot-Extended` are included for spec coverage even though
