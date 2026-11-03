@@ -36,11 +36,18 @@ export default function HomePage() {
   }
 
   return (
-    <main>
+    <main className="mx-auto max-w-xl space-y-4 p-8">
+      <a className="underline" href="/login">
+        Sign in / Create account
+      </a>
       <p className="eyebrow">Crawler Analytics / First connection</p>
-      <h1>Hello world</h1>
+      <h1 className="text-4xl font-bold">Hello world</h1>
       <p>Send a request to our Supabase Edge Function.</p>
-      <button onClick={sayHello} disabled={isLoading}>
+      <button
+        className="rounded-md bg-primary px-4 py-2 text-primary-foreground disabled:opacity-50"
+        onClick={sayHello}
+        disabled={isLoading}
+      >
         {isLoading ? "Sending…" : "Say hello"}
       </button>
       <div aria-live="polite">

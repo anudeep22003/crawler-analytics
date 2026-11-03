@@ -3,7 +3,35 @@
 First working slice: a Next.js page calls a Supabase Edge Function. Clicking
 **Say hello** logs `Hello world` in the browser console, invokes the function,
 and displays its JSON response: `{"message":"Hello world"}`. The function also
-logs the greeting in its own terminal. No database writes or sign-in yet.
+logs the greeting in its own terminal. Email/password authentication is available
+at `/login`; application database tables are not introduced yet.
+
+## Email/password authentication
+
+Set these values in `.env.local` using your Supabase project's Connect dialog:
+
+```text
+NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLISHABLE_KEY
+```
+
+Use the publishable key (or legacy anon key), never a secret/service-role key.
+Restart `npm run dev`, then open <http://localhost:3000/login>.
+Enable the Email provider in Supabase Auth. In Auth URL Configuration, set your
+Site URL to `http://localhost:3000` and allow `http://localhost:3000/login` as a
+redirect URL. Add the equivalent HTTPS URLs when deploying, and configure both
+environment variables on the hosting platform before building.
+
+Choose **New here? Sign up** to create an account. If email confirmation is
+enabled, follow the email link before signing in; otherwise signup signs you in
+immediately. The signed-in view displays your email and a **Sign out** button.
+Reloading restores your session. Verify signup, reload, sign-out, and sign-in
+with the same credentials; incorrect credentials should display an error.
+
+One `supabase-js` client in `lib/supabase.ts` manages localStorage persistence,
+token refresh, and authentication headers. No SSR auth client or middleware is
+used. Client-side session display is not an authorization boundary; future data
+access will require database RLS policies.
 
 ## Run locally
 
