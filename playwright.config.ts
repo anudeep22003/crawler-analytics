@@ -13,9 +13,16 @@ export default defineConfig({
     { name: "firefox", use: { browserName: "firefox" } },
     { name: "webkit", use: { browserName: "webkit" } },
   ],
-  webServer: {
-    command: "node tests/fixtures/customer-site/server.mjs",
-    url: "http://127.0.0.1:3001",
-    reuseExistingServer: false,
-  },
+  webServer: [
+    {
+      command: "node tests/fixtures/customer-site/server.mjs",
+      url: "http://127.0.0.1:3001",
+      reuseExistingServer: false,
+    },
+    {
+      command: "node tests/fixtures/tracker-server.mjs",
+      url: "http://127.0.0.1:3003/tracker.js",
+      reuseExistingServer: false,
+    },
+  ],
 });
