@@ -111,42 +111,69 @@ npm run build     # Production build
 With Deno installed, `deno check supabase/functions/hello-world/index.ts`
 checks the function separately: it runs in Deno, while Next.js uses Node.js.
 
-## Headless bot user-agent checks
+## Install the tracker
+
+Click a saved site on the dashboard to open `/s/{site_id}`. Copy its snippet and
+paste it once into the `<head>` of each tracked page (or a shared template).
+The shared `/tracker.js` file reads `data-site-id` and `data-collector-url`.
+The latter is derived from `NEXT_PUBLIC_SUPABASE_URL`; no secret is embedded.
+Use the snippet from a deployed dashboard for live websites. A localhost script
+URL is only accessible on your development machine. Sites with a Content Security
+Policy must allow the script origin in `script-src` and collector in `connect-src`.
+
+This increment logs every valid visit, including ordinary browsers, without
+classification or persistence. The collector validates payload shape but does
+not yet look up the site or verify its hostname. The public site ID identifies
+a tracking property; it does not authenticate an event. A successful response
+confirms transport only. No crawler events table is introduced.
+
+## Headless tracking checks
+
+Start Docker and local Supabase, then serve the functions:
+
+```sh
+npm run supabase:start
+npm run functions:serve
+```
+
+In another terminal:
 
 ```sh
 npx playwright install chromium firefox webkit # Repeat after Playwright upgrades
 npm run test:bots
 ```
 
-Playwright starts a tiny Node.js server at `http://127.0.0.1:3001` and stops it
-after the run. It serves `tests/fixtures/customer-site/index.html`, representing
-a customer website on a separate origin from the dashboard and collector.
-Port 3001 must be free; an existing server is deliberately not reused.
-Next.js, Supabase, and Docker are not required for these tests.
+Playwright starts and stops two tiny servers: the customer HTML page on port 3001
+and the real `public/tracker.js` asset on port 3003. Both ports must be free.
+The fixture embeds the snippet in its head, with a synthetic site UUID and the
+local collector on port 54321. Next.js and a seeded site are not required.
 
-Each of the 11 signatures gets a fresh browser context in Chromium, Firefox,
-and WebKit: **33 headless tests**. Tests assert the fixture page loads, the
-navigation request's `User-Agent` header, and `navigator.userAgent`.
-The fixture has no tracking snippet yet, so this does not test collector CORS.
+All 11 signatures run in Chromium, Firefox, and WebKit: **33 headless tests**.
+They check navigation headers, `navigator.userAgent`, and the actual collector's
+JSON acknowledgement of the site ID, page URL, and HTTP user agent. This exercises
+cross-origin script loading and JSON POST/preflight handling without mocking the
+collector. The latest local run passed all 33 cases in **7.7s** (**8.00s wall time**),
+excluding container startup. Firefox needed an explicit test HTTP header override as well as the
+context user agent to propagate spoofed identities to fetch requests.
 
-The list reporter prints each test's duration and the total; failures exit nonzero.
-Tests run sequentially with one worker. To include command startup overhead:
+Watch the `npm run functions:serve` terminal for structured logs such as:
 
-```sh
-time npm run test:bots
+```json
+{
+  "event": "tracking_received",
+  "site_id": "00000000-0000-0000-0000-000000000001",
+  "page_url": "http://127.0.0.1:3001/",
+  "user_agent": "GPTBot"
+}
 ```
 
-Example measured locally: **33 passed in 12.5s**, **12.87s wall time**, including
-fixture server startup and shutdown. Browser installation is excluded. Individual
-tests took 41–185ms in Chromium, 124–653ms in Firefox, and 142–579ms in WebKit.
-Timing varies with the machine and browser startup overhead.
-
-To run just one engine: `npm run test:bots -- --project=firefox`.
+The list reporter prints per-test and total durations and exits nonzero on failure.
+Use `time npm run test:bots` for wall time, or
+`npm run test:bots -- --project=firefox` for one engine. Tests run sequentially.
 
 These are synthetic user-agent checks, not emulations of actual crawler behavior.
-`Google-Extended` and `Applebot-Extended` are included for spec coverage even though
-they are robots.txt control tokens, not separate crawler HTTP identities.
-`Claude-Web` comes from the brief's classification example.
+`Google-Extended` and `Applebot-Extended` are control tokens included for spec
+coverage. `Claude-Web` comes from the brief's classification example.
 
 ## Deploy later
 
@@ -154,16 +181,17 @@ they are robots.txt control tokens, not separate crawler HTTP identities.
 
    ```sh
    npx supabase login
-   npx supabase functions deploy hello-world --project-ref YOUR_PROJECT_REF
+   npx supabase functions deploy track --project-ref YOUR_PROJECT_REF
    ```
 
 2. Import this repository into Vercel as a Next.js project. Before building, set:
 
    ```text
-   NEXT_PUBLIC_HELLO_FUNCTION_URL=https://YOUR_PROJECT_REF.supabase.co/functions/v1/hello-world
+   NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLISHABLE_KEY
    ```
 
-3. Deploy and verify the login flow. `NEXT_PUBLIC_` values are embedded at
+3. Deploy and verify login, then copy and install a site snippet. `NEXT_PUBLIC_` values are embedded at
    build time, so changing the URL requires rebuilding/redeploying. This URL
    is public; never put a Supabase secret/service-role key in a public variable.
 
