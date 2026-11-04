@@ -53,8 +53,8 @@ npx supabase migration up --remote=YOUR_PROJECT_REF
 ```
 
 The migration creates `sites`, a unique `(user_id, domain)` index, hostname
-validation, and owner-only SELECT/INSERT policies. It does not create crawler
-events. Hostnames are trimmed and lowercased; enter `example.com`, not a URL.
+validation, and owner-only SELECT/INSERT policies. The next migration adds
+`crawler_events` with site/time and platform indexes and owner-only reads. Hostnames are trimmed and lowercased; enter `example.com`, not a URL.
 `www.example.com` is a separate site. Different accounts may add the same domain.
 
 Verify: sign in, add a domain, reload and confirm it remains listed. Adding it
@@ -121,11 +121,19 @@ Use the snippet from a deployed dashboard for live websites. A localhost script
 URL is only accessible on your development machine. Sites with a Content Security
 Policy must allow the script origin in `script-src` and collector in `connect-src`.
 
-This increment logs every valid visit, including ordinary browsers, without
-classification or persistence. The collector validates payload shape but does
-not yet look up the site or verify its hostname. The public site ID identifies
-a tracking property; it does not authenticate an event. A successful response
-confirms transport only. No crawler events table is introduced.
+The collector persists valid visits in `crawler_events`, including ordinary
+browsers for now. It finds the site by UUID, checks the reported page hostname,
+and inserts a new event with the HTTP user agent, page URL/path, and database
+receipt timestamp. Success includes the saved event UUID and is returned only
+after insertion succeeds. Storage failures return HTTP 500; invalid payloads,
+unknown sites, and hostname mismatches return HTTP 400.
+
+Classification and IP hashing remain deferred; their nullable fields are unset.
+The public site ID and claimed hostname do not authenticate the sender or prove
+crawler identity. Site IDs choose the destination even when two owners share a
+domain. Dashboard users can read only their own events and cannot insert them
+directly. The collector uses Supabase's injected `SUPABASE_URL` and
+`SUPABASE_SERVICE_ROLE_KEY`, never frontend credentials.
 
 ## Headless tracking checks
 
@@ -133,6 +141,7 @@ Start Docker and local Supabase, then serve the functions:
 
 ```sh
 npm run supabase:start
+npx supabase migration up
 npm run functions:serve
 ```
 
@@ -145,22 +154,25 @@ npm run test:bots
 
 Playwright starts and stops two tiny servers: the customer HTML page on port 3001
 and the real `public/tracker.js` asset on port 3003. Both ports must be free.
-The fixture embeds the snippet in its head, with a synthetic site UUID and the
-local collector on port 54321. Next.js and a seeded site are not required.
+The fixture embeds the snippet in its head with a real test site UUID supplied
+through its `site_id` query parameter. The collector runs locally on port 54321.
+Tests obtain local credentials from `supabase status`, create two disposable
+users with sites sharing `127.0.0.1`, and remove them and their events afterward.
+They never use the hosted project configured in `.env.local`. Next.js is not needed.
 
-All 11 signatures run in Chromium, Firefox, and WebKit: **33 headless tests**.
-They check navigation headers, `navigator.userAgent`, and the actual collector's
-JSON acknowledgement of the site ID, page URL, and HTTP user agent. This exercises
-cross-origin script loading and JSON POST/preflight handling without mocking the
-collector. The latest local run passed all 33 cases in **7.7s** (**8.00s wall time**),
-excluding container startup. Firefox needed an explicit test HTTP header override as well as the
-context user agent to propagate spoofed identities to fetch requests.
+All 11 signatures run in Chromium, Firefox, and WebKit: **33 browser tests**
+assert navigation headers, `navigator.userAgent`, collector responses, and the
+saved Postgres row. Six additional API cases verify same-domain attribution and
+rejection of unknown sites/mismatched hostnames. **39 tests passed in 14.8s**
+(**15.15s wall time**), excluding container startup. Firefox needs explicit test
+HTTP header overrides as well as the context user agent for fetch requests.
 
 Watch the `npm run functions:serve` terminal for structured logs such as:
 
 ```json
 {
-  "event": "tracking_received",
+  "event": "tracking_saved",
+  "event_id": "a342d0e7-a3db-45bc-b30b-3b346e231d03",
   "site_id": "00000000-0000-0000-0000-000000000001",
   "page_url": "http://127.0.0.1:3001/",
   "user_agent": "GPTBot"
@@ -177,10 +189,11 @@ coverage. `Claude-Web` comes from the brief's classification example.
 
 ## Deploy later
 
-1. Create a hosted Supabase project, then deploy the function:
+1. Apply the migrations before deploying the updated collector:
 
    ```sh
    npx supabase login
+   npx supabase migration up --remote=YOUR_PROJECT_REF
    npx supabase functions deploy track --project-ref YOUR_PROJECT_REF
    ```
 

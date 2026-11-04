@@ -40,9 +40,8 @@ function SiteInstallation({
       <Button onClick={copySnippet}>Copy snippet</Button>
       {copyMessage && <p role="status">{copyMessage}</p>}
       <p className="text-sm text-muted-foreground">
-        Visits are currently logged by the collector. Analytics and event
-        storage will follow. Crawlers that do not execute JavaScript will not
-        send visits.
+        Visits are saved by the collector. Analytics will follow. Crawlers that
+        do not execute JavaScript will not send visits.
       </p>
     </section>
   );
