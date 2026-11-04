@@ -3,3 +3,7 @@ project_id = "pixel-crawler-analytics"
 [functions.hello-world]
 # This first function is intentionally public and returns only a greeting.
 verify_jwt = false
+
+[functions.track]
+# Customer page visits have no dashboard login session.
+verify_jwt = false
