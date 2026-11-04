@@ -62,6 +62,42 @@ again should show a duplicate error. Sign out and visit `/dashboard` to verify
 the login redirect. Another account should not see the first account's sites.
 The rollback-only SQL tests cover uniqueness and account isolation.
 
+## Site analytics and demo data
+
+Each `/s/{site_id}` page shows total recorded visits and a shadcn/Recharts timeline
+for 24h, 7d, or 30d. `hooks/use-site-activity.ts` calls the `site_activity` database
+function; raw events are not downloaded. It runs with the caller's RLS permissions.
+Windows include their start and exclude their end. All three presets share the
+page's load-time snapshot; reload for fresh data. Buckets are hourly for 24h and
+daily for 7d/30d, anchored at the window start, with UTC labels and zero-filled gaps.
+These are recorded visits, including ordinary browsers, not classified bot totals.
+
+Create a small, persistent **local-only** demo dataset:
+
+```sh
+npm run supabase:start
+npx supabase migration up
+npm run seed:analytics
+```
+
+The script creates `analytics-demo@example.com` with password
+`Local-analytics-demo-123!` and a site named `analytics-demo.example`. It prints
+the site URL and verifies 24h=6, 7d=10, 30d=13 against its reference time.
+Its 14 events include one outside the 30-day window. Reruns replace only events
+marked `AnalyticsDemoSeed/1.0` on that demo site, leaving other data intact.
+The data stays available until explicitly removed or the local database is reset.
+
+For a fixed reference time, use `npm run seed:analytics -- 2030-02-01T00:00:00Z`.
+The UI always uses current time; use the default seed command for a live demo.
+Expected counts age as events move out of the selected window.
+
+To view the local demo, point `.env.local` at `http://127.0.0.1:54321` and use the
+local publishable/anon key from `npx supabase status`, then restart Next.js and
+sign in with the demo account. The script never changes hosted project data.
+Apply the new migration to your hosted project before using analytics there.
+
+Run `npx supabase test db` for boundary, zero-bucket, and ownership checks.
+
 ## Run locally
 
 Prerequisites: Node.js 24 LTS, npm, and a running Docker Desktop (or compatible
