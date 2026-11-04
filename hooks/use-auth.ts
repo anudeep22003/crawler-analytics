@@ -3,14 +3,22 @@
 import { useEffect, useState, type FormEvent } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
 
-export function useAuth() {
+export function useAuth({ requireSession = false } = {}) {
+  const router = useRouter();
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [signingUp, setSigningUp] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    if (loading) return;
+    if (requireSession && !session) router.replace("/login");
+    if (!requireSession && session) router.replace("/dashboard");
+  }, [loading, session, requireSession, router]);
 
   useEffect(() => {
     if (!supabase) {
