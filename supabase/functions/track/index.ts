@@ -4,6 +4,7 @@ const SITE_ID_PATTERN = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 const MAX_PAYLOAD_CHARACTERS = 8192;
 const MAX_PAGE_URL_CHARACTERS = 4096;
 const ALLOWED_PAGE_PROTOCOLS = ["http:", "https:"];
+
 const PREFLIGHT_METHOD = "OPTIONS";
 const TRACKING_METHOD = "POST";
 const ALLOWED_METHODS = "POST, OPTIONS";
@@ -12,20 +13,20 @@ const METHOD_NOT_ALLOWED_STATUS = 405;
 const BAD_REQUEST_STATUS = 400;
 const USER_AGENT_HEADER = "user-agent";
 const MISSING_USER_AGENT = "";
+
 const TRACKING_LOG_EVENT = "tracking_saved";
 const STORAGE_ERROR_LOG_EVENT = "tracking_storage_failed";
 const STORAGE_ERROR = "Could not save tracking event";
 const INVALID_SITE_ERROR = "Site does not exist or hostname does not match";
 const INTERNAL_ERROR_STATUS = 500;
+
 const SITES_TABLE = "sites";
 const EVENTS_TABLE = "crawler_events";
 const SITE_COLUMNS = "id, domain";
 const ID_COLUMN = "id";
 const DATABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const DATABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const database = createClient(DATABASE_URL, DATABASE_SERVICE_KEY, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
+
 const METHOD_NOT_ALLOWED_ERROR = "Method not allowed";
 const PAYLOAD_TOO_LARGE_ERROR = "Payload too large";
 const INVALID_EVENT_ERROR = "Expected a site UUID and page URL";
@@ -38,13 +39,20 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Headers": "content-type",
 };
 
+// Collector writes use server credentials; visiting browsers have no user session.
+const database = createClient(DATABASE_URL, DATABASE_SERVICE_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false },
+});
+
 Deno.serve(async (request: Request) => {
+  // Answer browser preflights before processing tracking requests.
   if (request.method === PREFLIGHT_METHOD) {
     return new Response(null, {
       status: NO_CONTENT_STATUS,
       headers: CORS_HEADERS,
     });
   }
+
   if (request.method !== TRACKING_METHOD) {
     return Response.json(
       { error: METHOD_NOT_ALLOWED_ERROR },
@@ -57,11 +65,16 @@ Deno.serve(async (request: Request) => {
 
   let received: { site_id: string; page_url: string; user_agent: string };
   let pageUrl: URL;
+
+  // Reject malformed payloads before making any database requests.
   try {
     const body = await request.text();
+
     if (body.length > MAX_PAYLOAD_CHARACTERS)
       throw new Error(PAYLOAD_TOO_LARGE_ERROR);
+
     const event = JSON.parse(body);
+
     if (
       !event ||
       typeof event.site_id !== "string" ||
@@ -71,7 +84,9 @@ Deno.serve(async (request: Request) => {
     ) {
       throw new Error(INVALID_EVENT_ERROR);
     }
+
     pageUrl = new URL(event.page_url);
+
     if (!ALLOWED_PAGE_PROTOCOLS.includes(pageUrl.protocol))
       throw new Error(INVALID_PAGE_URL_ERROR);
 
@@ -86,6 +101,7 @@ Deno.serve(async (request: Request) => {
       { status: BAD_REQUEST_STATUS, headers: CORS_HEADERS },
     );
   }
+
   try {
     // IDs choose the tracking property; domains only validate the reported page.
     const { data: site, error: siteError } = await database
@@ -93,7 +109,9 @@ Deno.serve(async (request: Request) => {
       .select(SITE_COLUMNS)
       .eq(ID_COLUMN, received.site_id)
       .maybeSingle();
+
     if (siteError) throw siteError;
+
     if (!site || site.domain !== pageUrl.hostname) {
       return Response.json(
         { error: INVALID_SITE_ERROR },
@@ -103,12 +121,16 @@ Deno.serve(async (request: Request) => {
         },
       );
     }
+
+    // Persist first so a successful response always refers to a saved event.
     const { data: savedEvent, error: insertError } = await database
       .from(EVENTS_TABLE)
       .insert({ ...received, page_path: pageUrl.pathname })
       .select(ID_COLUMN)
       .single();
+
     if (insertError) throw insertError;
+
     console.log(
       JSON.stringify({
         event: TRACKING_LOG_EVENT,
@@ -116,12 +138,15 @@ Deno.serve(async (request: Request) => {
         ...received,
       }),
     );
+
     return Response.json(
       { event_id: savedEvent.id, received },
       { headers: CORS_HEADERS },
     );
   } catch {
+    // Storage failures are server errors, distinct from invalid client payloads.
     console.error(STORAGE_ERROR_LOG_EVENT);
+
     return Response.json(
       { error: STORAGE_ERROR },
       {
