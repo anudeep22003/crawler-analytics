@@ -4,6 +4,7 @@ import { useSites } from "@/hooks/use-sites";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import Link from "next/link";
 
 export function SitesForm({ userId }: { userId: string }) {
   const { sites, loading, saving, error, message, addSite } = useSites(userId);
@@ -45,7 +46,9 @@ export function SitesForm({ userId }: { userId: string }) {
         <ul aria-label="Saved sites" className="space-y-2">
           {sites.map((site) => (
             <li key={site.id} className="rounded-lg border p-3">
-              {site.domain}
+              <Link href={`/s/${site.id}`} className="underline">
+                {site.domain}
+              </Link>
             </li>
           ))}
         </ul>
