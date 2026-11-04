@@ -1,11 +1,11 @@
 # Pixel Crawler Analytics
 
 The public entry point at `/` displays the email/password login page, also
-available at `/login`. Future application pages will require an authenticated
-session. Application database tables are not introduced yet.
+available at `/login`. Signed-in users go to `/dashboard` to add sites.
+The dashboard requires a session; Postgres RLS enforces data ownership.
 
 Authentication state and actions live in `hooks/use-auth.ts`; the login page
-renders the form and account view. The original greeting Edge Function remains
+renders the form. Site loading and submission live in `hooks/use-sites.ts`. The original greeting Edge Function remains
 available as a standalone local smoke check.
 
 ## Email/password authentication
@@ -26,14 +26,41 @@ environment variables on the hosting platform before building.
 
 Choose **New here? Sign up** to create an account. If email confirmation is
 enabled, follow the email link before signing in; otherwise signup signs you in
-immediately. The signed-in view displays your email and a **Sign out** button.
+immediately. The dashboard displays your email and a **Sign out** button.
 Reloading restores your session. Verify signup, reload, sign-out, and sign-in
 with the same credentials; incorrect credentials should display an error.
 
 One `supabase-js` client in `lib/supabase.ts` manages localStorage persistence,
 token refresh, and authentication headers. No SSR auth client or middleware is
-used. Client-side session display is not an authorization boundary; future data
-access will require database RLS policies.
+used. Client-side session display is not an authorization boundary; sites are
+protected by database RLS policies.
+
+## Sites database setup
+
+Apply the migration to the database used by your frontend before adding sites.
+For local Supabase:
+
+```sh
+npx supabase migration up
+npx supabase test db
+```
+
+For your hosted project (substitute its project reference):
+
+```sh
+npx supabase login
+npx supabase migration up --remote=YOUR_PROJECT_REF
+```
+
+The migration creates `sites`, a unique `(user_id, domain)` index, hostname
+validation, and owner-only SELECT/INSERT policies. It does not create crawler
+events. Hostnames are trimmed and lowercased; enter `example.com`, not a URL.
+`www.example.com` is a separate site. Different accounts may add the same domain.
+
+Verify: sign in, add a domain, reload and confirm it remains listed. Adding it
+again should show a duplicate error. Sign out and visit `/dashboard` to verify
+the login redirect. Another account should not see the first account's sites.
+The rollback-only SQL tests cover uniqueness and account isolation.
 
 ## Run locally
 
