@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { SitesForm } from "@/components/sites-form";
 
 export default function DashboardPage() {
   const { session, loading, busy, error, signOut } = useAuth({
@@ -25,6 +26,7 @@ export default function DashboardPage() {
       </header>
       <p className="text-sm text-muted-foreground">{session.user.email}</p>
       {error && <p role="alert">{error}</p>}
+      <SitesForm key={session.user.id} userId={session.user.id} />
     </main>
   );
 }
