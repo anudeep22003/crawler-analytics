@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { useSiteInstallation } from "@/hooks/use-site-installation";
 import { Button } from "@/components/ui/button";
+import { SiteActivity } from "@/components/site-activity";
 
 function SiteInstallation({
   siteId,
@@ -21,6 +22,7 @@ function SiteInstallation({
   return (
     <section className="space-y-4">
       <h1 className="text-2xl font-semibold">{site.domain}</h1>
+      <SiteActivity siteId={site.id} />
       <h2 className="text-lg font-medium">Install tracking</h2>
       <ol className="list-decimal space-y-2 pl-5">
         <li>Copy the snippet below.</li>
@@ -40,8 +42,8 @@ function SiteInstallation({
       <Button onClick={copySnippet}>Copy snippet</Button>
       {copyMessage && <p role="status">{copyMessage}</p>}
       <p className="text-sm text-muted-foreground">
-        Visits are saved by the collector. Analytics will follow. Crawlers that
-        do not execute JavaScript will not send visits.
+        Visits are saved by the collector. Crawlers that do not execute
+        JavaScript will not send visits.
       </p>
     </section>
   );
