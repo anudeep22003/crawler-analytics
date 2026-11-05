@@ -64,13 +64,34 @@ The rollback-only SQL tests cover uniqueness and account isolation.
 
 ## Site analytics and demo data
 
-Each `/s/{site_id}` page shows total recorded visits and a shadcn/Recharts timeline
-for 24h, 7d, or 30d. `hooks/use-site-activity.ts` calls the `site_activity` database
-function; raw events are not downloaded. It runs with the caller's RLS permissions.
-Windows include their start and exclude their end. All three presets share the
-page's load-time snapshot; reload for fresh data. Buckets are hourly for 24h and
-daily for 7d/30d, anchored at the window start, with UTC labels and zero-filled gaps.
-These are recorded visits, including ordinary browsers, not classified bot totals.
+Each `/s/{site_id}` page displays these sections together:
+
+- Overview: recorded visits, active bots, top platform, and top page.
+- Visits over time: shadcn/Recharts timeline with zero-filled intervals.
+- Platforms: horizontal bar chart ranked by visits.
+- Top pages: up to 10 paths ranked by visits (queries are grouped together).
+- Recent activity: latest 50 events with UTC time, page, bot, platform, type, and user agent.
+- Installation snippet and instructions below the analytics.
+
+Period (24h/7d/30d), platform, and bot-type filters apply to every analytics
+section. `hooks/use-site-activity.ts` makes **one `site_activity` RPC per selection**.
+Postgres computes the summaries and returns only the bounded recent-events list;
+the browser does not download all events. Presentation components receive prepared
+values. Filter options reflect the full selected period, so choosing a platform
+or bot type does not remove other choices.
+
+The RPC runs with caller RLS permissions. Windows include their start and exclude
+their end. All filters share the page's load-time snapshot; reload for fresh data.
+Buckets are hourly for 24h and daily for 7d/30d, anchored at the window start.
+Active bots means distinct recognized bot names in the filtered window, excluding
+Unknown; it does not mean currently online. Recorded visits include unclassified
+traffic. Historical null classifications are grouped as Unknown. Tied platform
+and page counts sort alphabetically for deterministic results.
+
+Apply the latest migration to the same database your frontend uses before opening
+the expanded dashboard. It replaces the original RPC with an extended signature
+whose platform/type parameters default to no filter. CSV export is a separate
+future workflow and is not part of the dashboard RPC.
 
 Create a persistent **local-only** demo dataset:
 
