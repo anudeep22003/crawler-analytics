@@ -303,6 +303,29 @@ These are synthetic user-agent checks, not emulations of actual crawler behavior
 `Google-Extended` and `Applebot-Extended` are control tokens included for spec
 coverage. `Claude-Web` comes from the brief's classification example.
 
+## Test the deployed tracker from a local page
+
+The opt-in hosted fixture uses the deployed snippet in
+`tests/fixtures/customer-site/hosted.html`. Its live site is registered as
+`127.0.0.1`, matching the local page hostname; the port is not part of the domain.
+
+```sh
+npm run test:hosted
+```
+
+This command starts and stops the fixture server on port 3001, loads the real
+Vercel script, and sends **33 live events** to the hosted Supabase collector
+(11 signatures across Chromium, Firefox, and WebKit). It needs no local Supabase
+stack. Each event URL includes a `test_run`, browser, and user-agent marker.
+The test checks the returned user agent/site/page and saved event UUID, recording
+receipts under `test-results/hosted`. It does not independently query the hosted
+database or delete the live events afterward.
+
+The normal `npm run test:bots` suite excludes these tests. Hosted runs disable
+retries and stop at the first failure to avoid repeated live traffic. Update both
+the hosted HTML and test constants if changing the deployment or registered site.
+The first deployed run passed all 33 cases in 20.9s (21.27s wall time).
+
 ## Deploy later
 
 1. Apply the migrations before deploying the updated collector:
