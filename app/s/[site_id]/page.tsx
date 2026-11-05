@@ -8,6 +8,7 @@ import { useSiteInstallation } from "@/hooks/use-site-installation";
 import { Button } from "@/components/ui/button";
 import { SiteActivity } from "@/components/site-activity";
 import { SiteExport } from "@/components/site-export";
+import { InstallationCheck } from "@/components/installation-check";
 import {
   Collapsible,
   CollapsibleContent,
@@ -57,6 +58,7 @@ function SiteInstallation({
           </pre>
           <Button onClick={copySnippet}>Copy snippet</Button>
           {copyMessage && <p role="status">{copyMessage}</p>}
+          <InstallationCheck siteId={site.id} domain={site.domain} />
           <p className="text-sm text-muted-foreground">
             Visits are saved by the collector. Crawlers that do not execute
             JavaScript will not send visits.
