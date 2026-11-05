@@ -1,5 +1,17 @@
 # Improvements
 
+## Add more login methods
+
+Offer additional Supabase Auth options, such as social login or email magic links,
+alongside email/password. Configure provider callbacks for local and hosted
+environments, and test sign-in, cancellation, and error handling for each method.
+
+## Confirm passwords during sign-up
+
+Add a second password field on sign-up and require both entries to match before
+submitting. Show a clear mismatch message, support password-manager autofill,
+and keep the existing single-password sign-in form.
+
 ## Allow owners to delete a site
 
 Add a delete action on the dashboard or site page, with confirmation naming the

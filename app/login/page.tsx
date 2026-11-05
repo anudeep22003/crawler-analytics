@@ -21,7 +21,10 @@ export default function LoginPage() {
   } = useAuth();
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-6">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-6 p-6">
+      <h1 className="text-2xl font-semibold tracking-tight">
+        Crawler Analytics
+      </h1>
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>
