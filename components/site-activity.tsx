@@ -1,27 +1,38 @@
 "use client";
 
-import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
-import { ACTIVITY_PERIODS, useSiteActivity } from "@/hooks/use-site-activity";
+import {
+  ACTIVITY_PERIODS,
+  BOT_TYPE_LABELS,
+  useSiteActivity,
+} from "@/hooks/use-site-activity";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
-
-const chartConfig = {
-  visits: { label: "Recorded visits", color: "var(--chart-1)" },
-};
+import { ActivityTimeline } from "@/components/activity-timeline";
+import { PlatformBreakdown } from "@/components/platform-breakdown";
+import { TopPages, RecentActivity } from "@/components/activity-tables";
 
 export function SiteActivity({ siteId }: { siteId: string }) {
-  const { period, setPeriod, activity, points, windowLabel, error, loading } =
-    useSiteActivity(siteId);
+  const {
+    period,
+    setPeriod,
+    platform,
+    setPlatform,
+    botType,
+    setBotType,
+    platformOptions,
+    activity,
+    points,
+    metrics,
+    recentEvents,
+    windowLabel,
+    error,
+    loading,
+  } = useSiteActivity(siteId);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Recorded activity</CardTitle>
+    <section className="space-y-6" aria-label="Site analytics">
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold">Recorded activity</h2>
         <div role="group" aria-label="Activity period" className="flex gap-2">
           {ACTIVITY_PERIODS.map((value) => (
             <Button
@@ -35,64 +46,98 @@ export function SiteActivity({ siteId }: { siteId: string }) {
             </Button>
           ))}
         </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {loading ? (
-          <p role="status">Loading activity…</p>
-        ) : error ? (
-          <p role="alert">{error}</p>
-        ) : (
-          activity && (
-            <>
-              <div aria-live="polite">
-                <p className="text-sm text-muted-foreground">
-                  Total recorded visits
+        <div className="flex flex-wrap gap-4">
+          <div className="space-y-1 text-sm">
+            <label htmlFor="activity-platform" className="block">
+              Platform
+            </label>
+            <select
+              id="activity-platform"
+              value={platform}
+              onChange={(event) => setPlatform(event.target.value)}
+              className="h-9 rounded-md border bg-background px-3"
+            >
+              <option value="">All platforms</option>
+              {platformOptions.map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1 text-sm">
+            <label htmlFor="activity-bot-type" className="block">
+              Bot type
+            </label>
+            <select
+              id="activity-bot-type"
+              value={botType}
+              onChange={(event) => setBotType(event.target.value)}
+              className="h-9 rounded-md border bg-background px-3"
+            >
+              <option value="">All types</option>
+              {Object.entries(BOT_TYPE_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Filters apply to every section. Includes unclassified visits; active
+          bots counts distinct recognized identities in this window.
+        </p>
+      </div>
+
+      {loading ? (
+        <p role="status">Loading activity…</p>
+      ) : error ? (
+        <p role="alert">{error}</p>
+      ) : (
+        activity && (
+          <>
+            <p className="text-xs text-muted-foreground">{windowLabel}</p>
+            <div className="grid grid-cols-2 gap-3" aria-live="polite">
+              {metrics.map((metric) => (
+                <Card key={metric.label}>
+                  <CardHeader>
+                    <CardTitle className="text-sm text-muted-foreground">
+                      {metric.label}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p
+                      aria-label={metric.label}
+                      className="break-all text-xl font-semibold"
+                    >
+                      {metric.value}
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            {activity.total === 0 && (
+              <p>No recorded visits in this selection.</p>
+            )}
+            <Card>
+              <CardHeader>
+                <CardTitle>Visits over time</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ActivityTimeline points={points} />
+                <p className="text-xs text-muted-foreground">
+                  {period === "24h" ? "Hourly" : "Daily"} buckets from the
+                  window start. Times are UTC.
                 </p>
-                <p
-                  className="text-3xl font-semibold"
-                  aria-label="Total recorded visits"
-                >
-                  {activity.total.toLocaleString()}
-                </p>
-              </div>
-              <p className="text-xs text-muted-foreground">{windowLabel}</p>
-              {activity.total === 0 && (
-                <p>No recorded visits in this period.</p>
-              )}
-              <ChartContainer
-                config={chartConfig}
-                className="h-64 w-full"
-                aria-label="Recorded visits timeline"
-              >
-                <LineChart accessibilityLayer data={points}>
-                  <CartesianGrid vertical={false} />
-                  <XAxis
-                    dataKey="label"
-                    minTickGap={32}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis allowDecimals={false} width={32} />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Line
-                    type="linear"
-                    dataKey="visits"
-                    stroke="var(--color-visits)"
-                    strokeWidth={2}
-                    dot={false}
-                    isAnimationActive={false}
-                  />
-                </LineChart>
-              </ChartContainer>
-              <p className="text-xs text-muted-foreground">
-                {period === "24h" ? "Hourly" : "Daily"} buckets from the window
-                start. Includes all recorded visits, including unclassified
-                traffic.
-              </p>
-            </>
-          )
-        )}
-      </CardContent>
-    </Card>
+              </CardContent>
+            </Card>
+            <PlatformBreakdown platforms={activity.platforms} />
+            <TopPages pages={activity.top_pages} />
+            <RecentActivity events={recentEvents} />
+          </>
+        )
+      )}
+    </section>
   );
 }
