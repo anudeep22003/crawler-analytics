@@ -14,7 +14,10 @@ test("serializes fixed columns, nulls, Unicode, commas, quotes, and newlines", (
     ip_hash: null,
   };
   const csv = serializeEventBatch([], true) + serializeEventBatch([row]);
-  const parsed = Papa.parse(csv, { header: true, skipEmptyLines: true });
+  const parsed = Papa.parse<Record<string, string>>(csv, {
+    header: true,
+    skipEmptyLines: true,
+  });
   assert.deepEqual(parsed.errors, []);
   assert.deepEqual(parsed.meta.fields, EXPORT_COLUMNS);
   assert.equal(parsed.data.length, 1);
@@ -26,7 +29,10 @@ test("serializes fixed columns, nulls, Unicode, commas, quotes, and newlines", (
 test("writes one header across batches and a header-only empty export", () => {
   const header = serializeEventBatch([], true);
   assert.deepEqual(
-    Papa.parse(header, { header: true, skipEmptyLines: true }).data,
+    Papa.parse<Record<string, string>>(header, {
+      header: true,
+      skipEmptyLines: true,
+    }).data,
     [],
   );
   const csv =
@@ -34,9 +40,10 @@ test("writes one header across batches and a header-only empty export", () => {
     serializeEventBatch([{ id: "first" }]) +
     serializeEventBatch([{ id: "second" }]);
   assert.deepEqual(
-    Papa.parse(csv, { header: true, skipEmptyLines: true }).data.map(
-      (row) => row.id,
-    ),
+    Papa.parse<Record<string, string>>(csv, {
+      header: true,
+      skipEmptyLines: true,
+    }).data.map((row) => row.id),
     ["first", "second"],
   );
 });
@@ -54,7 +61,10 @@ test("protects spreadsheet-formula prefixes", () => {
     values.map((user_agent) => ({ user_agent })),
     true,
   );
-  const { data } = Papa.parse(csv, { header: true, skipEmptyLines: true });
+  const { data } = Papa.parse<Record<string, string>>(csv, {
+    header: true,
+    skipEmptyLines: true,
+  });
   assert.deepEqual(
     data.map((row) => row.user_agent),
     values.map((value) => `'${value}`),
