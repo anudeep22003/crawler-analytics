@@ -24,9 +24,9 @@ known limitations, and future work beyond the assignment.
 
 A captioned walkthrough recorded locally with synthetic data:
 
-[![Watch the Crawler Analytics demo](docs/demo/thumbnail.jpg)](docs/demo/crawler-analytics.mp4?raw=1)
+https://github.com/user-attachments/assets/85aea5de-9b59-41df-915e-37c6c73a59b0
 
-[Download video](docs/demo/crawler-analytics.mp4?raw=1) · [Captions](docs/demo/crawler-analytics.srt)
+[Download video to see with subtitles](docs/demo/crawler-analytics.mp4?raw=1) · [Captions](docs/demo/crawler-analytics.srt)
 
 ## Run locally
 
