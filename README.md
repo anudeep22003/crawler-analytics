@@ -90,8 +90,8 @@ and page counts sort alphabetically for deterministic results.
 
 Apply the latest migration to the same database your frontend uses before opening
 the expanded dashboard. It replaces the original RPC with an extended signature
-whose platform/type parameters default to no filter. CSV export is a separate
-future workflow and is not part of the dashboard RPC.
+whose platform/type parameters default to no filter. CSV export is independent
+of the dashboard RPC and its filters.
 
 Create a persistent **local-only** demo dataset:
 
@@ -171,6 +171,38 @@ npm run build     # Production build
 
 With Deno installed, `deno check supabase/functions/hello-world/index.ts`
 checks the function separately: it runs in Deno, while Next.js uses Node.js.
+
+## Export all site data
+
+Use **Export all data** on the site page. It includes every stored event for that
+site, across all dates, regardless of the period/platform/type filters. Empty
+sites produce a header-only CSV. All event columns are included in a fixed order.
+
+`hooks/use-site-export.ts` manages progress, errors, cancellation on navigation,
+and download cleanup. `lib/export-site-events.mjs` fetches JSON batches through
+the signed-in Supabase client, so RLS still applies. Rows are ordered by timestamp
+ascending, then UUID ascending to handle ties; database timestamp precision is
+preserved. Pagination continues even when the API returns a shorter batch than
+requested. The newest visible event sets an upper bound at export start.
+
+`lib/crawler-events-csv.mjs` uses Papa Parse to serialize each batch, including
+CSV quoting and spreadsheet-formula protection. Formula-like text is prefixed
+with an apostrophe. Only CSV chunks accumulate in browser memory; row objects
+are released between batches. The complete CSV is still buffered until download,
+so very large exports may eventually need server-side streaming. Separate reads
+are not a transactional snapshot: backdated inserts or edits during export can
+still affect the output. No file is downloaded if any batch fails.
+
+Checks:
+
+```sh
+npm run test:unit
+npm run test:bots -- tests/export-events.spec.ts --project=chromium
+```
+
+The integration check uses local disposable data and verifies old events,
+timestamp ties (including microseconds), pagination past the API row cap,
+account isolation, the end boundary, empty output, and cancellation.
 
 ## Install the tracker
 
