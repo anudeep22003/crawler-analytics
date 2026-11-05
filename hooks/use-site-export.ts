@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { buildSiteCsv } from "@/lib/export-site-events.mjs";
+import { buildSiteCsv } from "@/lib/export-site-events.ts";
 
 const CSV_CONTENT_TYPE = "text/csv;charset=utf-8";
 const DOWNLOAD_URL_LIFETIME_MS = 60_000;

@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { createClient } from "@supabase/supabase-js";
 import Papa from "papaparse";
 import { test, expect } from "./support/sites";
-import { buildSiteCsv } from "../lib/export-site-events.mjs";
+import { buildSiteCsv } from "../lib/export-site-events.ts";
 import { EXPORT_COLUMNS } from "../lib/crawler-events-csv.ts";
 
 test("exports every batch in order, all dates, and only the signed-in owners site", async ({
