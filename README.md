@@ -84,8 +84,9 @@ The script creates `analytics-demo@example.com` with password
 `Local-analytics-demo-123!` and a site named `analytics-demo.example`. It prints
 the site URL and inserts **10,000 events** with random timestamps in the last
 30 days. User agents are chosen from the ten signatures in the spec's table plus
-`Unknown`, with at least one event for each. The script verifies database totals
-for every period and user agent against the generated data.
+`Unknown`, with at least one event for each. The script uses the same classifier as the collector to populate `bot_name`,
+`platform`, and `bot_type`, then verifies every period and classified user-agent
+count against the generated data.
 Reruns replace all events on this dedicated demo site, including the old seed,
 while leaving other sites and accounts intact. Each run generates new random data.
 The data stays available until explicitly removed or the local database is reset.
@@ -167,12 +168,21 @@ receipt timestamp. Success includes the saved event UUID and is returned only
 after insertion succeeds. Storage failures return HTTP 500; invalid payloads,
 unknown sites, and hostname mismatches return HTTP 400.
 
-Classification and IP hashing remain deferred; their nullable fields are unset.
+The shared classifier in `supabase/functions/_shared/classify-bot.mjs` populates
+`bot_name`, `platform`, and `bot_type` from the HTTP header. It recognizes the
+spec's signatures case-insensitively within full user-agent strings. Unmatched
+traffic (including ordinary browsers) is `Unknown` / `Unknown` / `unknown`;
+this is unclassified traffic, not proof of an unknown bot. The spec's Extended
+control tokens are supported for synthetic traffic only. IP hashing remains deferred.
+Existing non-demo events are not backfilled; the seed recreates its demo events.
+No schema migration is needed for these already-existing columns.
 The public site ID and claimed hostname do not authenticate the sender or prove
 crawler identity. Site IDs choose the destination even when two owners share a
 domain. Dashboard users can read only their own events and cannot insert them
 directly. The collector uses Supabase's injected `SUPABASE_URL` and
 `SUPABASE_SERVICE_ROLE_KEY`, never frontend credentials.
+
+Run `npm run test:unit` for the classifier mapping and fallback tests.
 
 ## Headless tracking checks
 
@@ -201,9 +211,10 @@ They never use the hosted project configured in `.env.local`. Next.js is not nee
 
 All 11 signatures run in Chromium, Firefox, and WebKit: **33 browser tests**
 assert navigation headers, `navigator.userAgent`, collector responses, and the
-saved Postgres row. Six additional API cases verify same-domain attribution and
-rejection of unknown sites/mismatched hostnames. **39 tests passed in 14.8s**
-(**15.15s wall time**), excluding container startup. Firefox needs explicit test
+saved Postgres row, including classification. Nine additional API cases verify
+same-domain attribution, invalid sites/hostnames, and that client-supplied labels
+cannot override HTTP-header classification. **42 tests passed in 13.6s**,
+excluding container startup. Firefox needs explicit test
 HTTP header overrides as well as the context user agent for fetch requests.
 
 Watch the `npm run functions:serve` terminal for structured logs such as:

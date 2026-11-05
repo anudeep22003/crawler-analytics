@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { randomInt } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
+import { classifyBot } from "../supabase/functions/_shared/classify-bot.mjs";
 
 const DEMO_EMAIL = "analytics-demo@example.com";
 const DEMO_PASSWORD = "Local-analytics-demo-123!";
@@ -71,18 +72,23 @@ if (siteError) throw siteError;
 
 // Generate before replacing the dedicated demo site's data. Cover every identity
 // once, then choose agents randomly; all timestamps are random within [start, end).
-const events = Array.from({ length: EVENT_COUNT }, (_, index) => ({
-  site_id: site.id,
-  timestamp: new Date(
-    end.getTime() - randomInt(1, WINDOW_MS + 1),
-  ).toISOString(),
-  user_agent:
+const events = Array.from({ length: EVENT_COUNT }, (_, index) => {
+  const userAgent =
     USER_AGENTS[
       index < USER_AGENTS.length ? index : randomInt(USER_AGENTS.length)
-    ],
-  page_url: `https://${DEMO_DOMAIN}/${index % 2 ? "pricing" : "docs"}`,
-  page_path: index % 2 ? "/pricing" : "/docs",
-}));
+    ];
+
+  return {
+    site_id: site.id,
+    timestamp: new Date(
+      end.getTime() - randomInt(1, WINDOW_MS + 1),
+    ).toISOString(),
+    user_agent: userAgent,
+    ...classifyBot(userAgent),
+    page_url: `https://${DEMO_DOMAIN}/${index % 2 ? "pricing" : "docs"}`,
+    page_path: index % 2 ? "/pricing" : "/docs",
+  };
+});
 
 // This site is reserved for seed data. Other sites and accounts are untouched.
 const { error: deleteError } = await admin
@@ -132,11 +138,15 @@ for (const userAgent of USER_AGENTS) {
   const expected = events.filter(
     (event) => event.user_agent === userAgent,
   ).length;
+  const classification = classifyBot(userAgent);
   const { count, error } = await client
     .from("crawler_events")
     .select("id", { count: "exact", head: true })
     .eq("site_id", site.id)
-    .eq("user_agent", userAgent);
+    .eq("user_agent", userAgent)
+    .eq("bot_name", classification.bot_name)
+    .eq("platform", classification.platform)
+    .eq("bot_type", classification.bot_type);
   if (error) throw error;
   if (count !== expected)
     throw new Error(`${userAgent}: expected ${expected}, received ${count}`);
@@ -145,7 +155,7 @@ for (const userAgent of USER_AGENTS) {
 console.log(
   `Seeded ${EVENT_COUNT} events across the 30 days ending ${end.toISOString()}.`,
 );
-console.log("Verified period totals:", totals);
+console.log("Verified period totals and all classification fields:", totals);
 console.table(distribution);
 console.log(`Local demo login: ${DEMO_EMAIL} / ${DEMO_PASSWORD}`);
 console.log(`Site: /s/${site.id}`);

@@ -86,8 +86,8 @@ export function SiteActivity({ siteId }: { siteId: string }) {
               </ChartContainer>
               <p className="text-xs text-muted-foreground">
                 {period === "24h" ? "Hourly" : "Daily"} buckets from the window
-                start. Includes all recorded visits; bot classification will
-                follow.
+                start. Includes all recorded visits, including unclassified
+                traffic.
               </p>
             </>
           )
