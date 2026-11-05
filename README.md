@@ -163,6 +163,13 @@ Ctrl+C and stop the project's containers with `npx supabase stop`.
 
 ## Checks
 
+Runtime helpers, seed scripts, fixture servers, and unit tests use TypeScript.
+Node.js 24 runs standalone `.ts` entry points directly; `make check` performs the
+separate type check. Supabase instances are named `supabase`, with privileged
+fixture access explicitly scoped as `siteFixture.supabase`. PostCSS keeps its
+loader-compatible `postcss.config.mjs`; the public tracking asset stays plain
+JavaScript so customer browsers can execute it directly.
+
 ```sh
 make format       # Prettier
 make check        # Formatting and frontend TypeScript
@@ -179,13 +186,13 @@ site, across all dates, regardless of the period/platform/type filters. Empty
 sites produce a header-only CSV. All event columns are included in a fixed order.
 
 `hooks/use-site-export.ts` manages progress, errors, cancellation on navigation,
-and download cleanup. `lib/export-site-events.mjs` fetches JSON batches through
+and download cleanup. `lib/export-site-events.ts` fetches JSON batches through
 the signed-in Supabase client, so RLS still applies. Rows are ordered by timestamp
 ascending, then UUID ascending to handle ties; database timestamp precision is
 preserved. Pagination continues even when the API returns a shorter batch than
 requested. The newest visible event sets an upper bound at export start.
 
-`lib/crawler-events-csv.mjs` uses Papa Parse to serialize each batch, including
+`lib/crawler-events-csv.ts` uses Papa Parse to serialize each batch, including
 CSV quoting and spreadsheet-formula protection. Formula-like text is prefixed
 with an apostrophe. Only CSV chunks accumulate in browser memory; row objects
 are released between batches. The complete CSV is still buffered until download,
@@ -221,7 +228,7 @@ receipt timestamp. Success includes the saved event UUID and is returned only
 after insertion succeeds. Storage failures return HTTP 500; invalid payloads,
 unknown sites, and hostname mismatches return HTTP 400.
 
-The shared classifier in `supabase/functions/_shared/classify-bot.mjs` populates
+The shared classifier in `supabase/functions/_shared/classify-bot.ts` populates
 `bot_name`, `platform`, and `bot_type` from the HTTP header. It recognizes the
 spec's signatures case-insensitively within full user-agent strings. Unmatched
 traffic (including ordinary browsers) is `Unknown` / `Unknown` / `unknown`;
