@@ -43,8 +43,7 @@ Tests get local credentials from `supabase status`, create disposable users/site
 and delete them and their events afterward. They do not use `.env.local` to select
 a hosted backend. SQL tests roll back their fixtures.
 
-Tests run sequentially and report per-test and total duration. Use `time npm run
-test:bots` for command wall time. Firefox uses both a context user agent and an
+Tests run sequentially and report per-test and total duration. Use `time npm run test:bots` for command wall time. Firefox uses both a context user agent and an
 explicit network-header override so fetch requests carry the spoofed signature.
 These checks simulate identities; they do not reproduce actual crawler behavior.
 
