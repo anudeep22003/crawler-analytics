@@ -8,20 +8,22 @@ import { EXPORT_COLUMNS } from "../lib/crawler-events-csv.ts";
 test("exports every batch in order, all dates, and only the signed-in owners site", async ({
   siteFixture,
 }) => {
-  const { admin, sites } = siteFixture;
+  const { sites } = siteFixture;
   const password = `${crypto.randomUUID()}Aa1!`;
   const { data: owner, error: ownerError } =
-    await admin.auth.admin.updateUserById(sites[0].user_id, { password });
+    await siteFixture.supabase.auth.admin.updateUserById(sites[0].user_id, {
+      password,
+    });
   expect(ownerError).toBeNull();
   const local = JSON.parse(
     execFileSync("npx", ["supabase", "status", "-o", "json"], {
       encoding: "utf8",
     }),
   );
-  const client = createClient("http://127.0.0.1:54321", local.ANON_KEY, {
+  const supabase = createClient("http://127.0.0.1:54321", local.ANON_KEY, {
     auth: { persistSession: false },
   });
-  const { error: loginError } = await client.auth.signInWithPassword({
+  const { error: loginError } = await supabase.auth.signInWithPassword({
     email: owner.user!.email!,
     password,
   });
@@ -39,26 +41,28 @@ test("exports every batch in order, all dates, and only the signed-in owners sit
     id: crypto.randomUUID(),
   }));
   for (let offset = 0; offset < events.length; offset += 500) {
-    const { error } = await admin
+    const { error } = await siteFixture.supabase
       .from("crawler_events")
       .insert(events.slice(offset, offset + 500));
     expect(error).toBeNull();
   }
   const newestId = crypto.randomUUID();
-  const { error: extraError } = await admin.from("crawler_events").insert([
-    { ...event, id: newestId, timestamp: "2000-01-01T00:00:00.123457Z" },
-    { ...event, id: crypto.randomUUID(), site_id: sites[1].id },
-  ]);
+  const { error: extraError } = await siteFixture.supabase
+    .from("crawler_events")
+    .insert([
+      { ...event, id: newestId, timestamp: "2000-01-01T00:00:00.123457Z" },
+      { ...event, id: crypto.randomUUID(), site_id: sites[1].id },
+    ]);
   expect(extraError).toBeNull();
 
   const progress: number[] = [];
-  const chunks = await buildSiteCsv(client, sites[0].id, {
+  const chunks = await buildSiteCsv(supabase, sites[0].id, {
     signal: new AbortController().signal,
     batchSize: 2000, // Exceeds the local API's default 1000-row cap.
     onProgress: async (count) => {
       progress.push(count);
       if (progress.length === 1) {
-        const { error } = await admin
+        const { error } = await siteFixture.supabase
           .from("crawler_events")
           .insert({ ...event, timestamp: "2001-01-01Z" });
         expect(error).toBeNull();
@@ -78,14 +82,14 @@ test("exports every batch in order, all dates, and only the signed-in owners sit
   expect(parsed.data.every((row) => row.site_id === sites[0].id)).toBe(true);
   expect(progress.at(-1)).toBe(1206);
 
-  const inaccessible = await buildSiteCsv(client, sites[1].id, {
+  const inaccessible = await buildSiteCsv(supabase, sites[1].id, {
     signal: new AbortController().signal,
   });
   expect(
     Papa.parse(inaccessible.join(""), { header: true, skipEmptyLines: true })
       .data,
   ).toEqual([]);
-  const empty = await buildSiteCsv(client, crypto.randomUUID(), {
+  const empty = await buildSiteCsv(supabase, crypto.randomUUID(), {
     signal: new AbortController().signal,
   });
   expect(
@@ -95,7 +99,7 @@ test("exports every batch in order, all dates, and only the signed-in owners sit
 
   const controller = new AbortController();
   await expect(
-    buildSiteCsv(client, sites[0].id, {
+    buildSiteCsv(supabase, sites[0].id, {
       signal: controller.signal,
       batchSize: 2,
       onProgress: () => controller.abort(),

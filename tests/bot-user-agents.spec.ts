@@ -59,7 +59,7 @@ for (const userAgent of botUserAgents) {
           user_agent: userAgent,
         },
       });
-      const { data: saved, error } = await siteFixture.admin
+      const { data: saved, error } = await siteFixture.supabase
         .from("crawler_events")
         .select(
           "site_id, page_url, page_path, user_agent, timestamp, bot_name, platform, bot_type",

@@ -33,7 +33,7 @@ test("classifies the HTTP header and ignores client-supplied classification", as
     });
     expect(response.status()).toBe(200);
     const result = await response.json();
-    const { data, error } = await siteFixture.admin
+    const { data, error } = await siteFixture.supabase
       .from("crawler_events")
       .select("bot_name, platform, bot_type, user_agent")
       .eq("id", result.event_id)
@@ -47,7 +47,7 @@ test("attributes identical page visits to the supplied site, not the shared doma
   request,
   siteFixture,
 }) => {
-  const { admin, sites } = siteFixture;
+  const { supabase, sites } = siteFixture;
   expect(sites[0].domain).toBe(sites[1].domain);
   expect(sites[0].user_id).not.toBe(sites[1].user_id);
   const pageUrl = `http://127.0.0.1:3001/same-page?test=${crypto.randomUUID()}`;
@@ -58,7 +58,7 @@ test("attributes identical page visits to the supplied site, not the shared doma
     });
     expect(response.status()).toBe(200);
   }
-  const { data, error } = await admin
+  const { data, error } = await supabase
     .from("crawler_events")
     .select("site_id, user_agent, page_path")
     .eq("page_url", pageUrl);
@@ -86,7 +86,7 @@ test("rejects unknown sites and mismatched hostnames without persisting", async 
     });
     expect(response.status()).toBe(400);
   }
-  const { data, error } = await siteFixture.admin
+  const { data, error } = await siteFixture.supabase
     .from("crawler_events")
     .select("id")
     .eq("page_url", pageUrl);
