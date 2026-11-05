@@ -4,7 +4,7 @@ import Papa from "papaparse";
 import {
   EXPORT_COLUMNS,
   serializeEventBatch,
-} from "../../lib/crawler-events-csv.mjs";
+} from "../../lib/crawler-events-csv.ts";
 
 test("serializes fixed columns, nulls, Unicode, commas, quotes, and newlines", () => {
   const row = {
