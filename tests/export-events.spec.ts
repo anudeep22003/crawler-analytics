@@ -8,7 +8,17 @@ import { EXPORT_COLUMNS } from "../lib/crawler-events-csv.ts";
 test("exports every batch in order, all dates, and only the signed-in owners site", async ({
   siteFixture,
 }) => {
-  const { sites } = siteFixture;
+  // Worker fixtures also serve ingestion tests; use fresh sites for exact export counts.
+  const { data: sites, error: siteError } = await siteFixture.supabase
+    .from("sites")
+    .insert(
+      siteFixture.sites.map((site) => ({
+        user_id: site.user_id,
+        domain: "export-fixture.example",
+      })),
+    )
+    .select("id, user_id");
+  if (siteError) throw siteError;
   const password = `${crypto.randomUUID()}Aa1!`;
   const { data: owner, error: ownerError } =
     await siteFixture.supabase.auth.admin.updateUserById(sites[0].user_id, {
@@ -32,7 +42,7 @@ test("exports every batch in order, all dates, and only the signed-in owners sit
   const event = {
     site_id: sites[0].id,
     timestamp: "2000-01-01T00:00:00.123456Z",
-    page_url: "http://127.0.0.1/old",
+    page_url: "https://export-fixture.example/old",
     page_path: "/old",
     user_agent: "GPTBot",
   };
