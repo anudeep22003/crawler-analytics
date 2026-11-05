@@ -1,4 +1,5 @@
 import { expect, test } from "./support/sites";
+import { classifyBot } from "../supabase/functions/_shared/classify-bot.mjs";
 
 // All signatures from the brief's table and classification example.
 // Extended tokens are synthetic cases, not actual crawler HTTP identities.
@@ -60,7 +61,9 @@ for (const userAgent of botUserAgents) {
       });
       const { data: saved, error } = await siteFixture.admin
         .from("crawler_events")
-        .select("site_id, page_url, page_path, user_agent, timestamp")
+        .select(
+          "site_id, page_url, page_path, user_agent, timestamp, bot_name, platform, bot_type",
+        )
         .eq("id", result.event_id)
         .single();
       expect(error).toBeNull();
@@ -69,6 +72,7 @@ for (const userAgent of botUserAgents) {
         page_url: pageUrl,
         page_path: "/",
         user_agent: userAgent,
+        ...classifyBot(userAgent),
       });
       expect(Number.isNaN(Date.parse(saved!.timestamp))).toBe(false);
     });

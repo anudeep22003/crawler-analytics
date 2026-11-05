@@ -2,6 +2,47 @@ import { test, expect } from "./support/sites";
 
 const COLLECTOR_URL = "http://127.0.0.1:54321/functions/v1/track";
 
+test("classifies the HTTP header and ignores client-supplied classification", async ({
+  request,
+  siteFixture,
+}) => {
+  for (const [userAgent, expected] of [
+    [
+      "Mozilla/5.0 (compatible; GPTBot/1.0)",
+      { bot_name: "GPTBot", platform: "OpenAI", bot_type: "training" },
+    ],
+    [
+      "UnlistedCrawler/1.0",
+      { bot_name: "Unknown", platform: "Unknown", bot_type: "unknown" },
+    ],
+    [
+      "Mozilla/5.0 Chrome/130.0 Safari/537.36",
+      { bot_name: "Unknown", platform: "Unknown", bot_type: "unknown" },
+    ],
+  ] as const) {
+    const response = await request.post(COLLECTOR_URL, {
+      headers: { "User-Agent": userAgent },
+      data: {
+        site_id: siteFixture.sites[0].id,
+        page_url: "http://127.0.0.1/",
+        user_agent: "PerplexityBot",
+        bot_name: "PerplexityBot",
+        platform: "Perplexity",
+        bot_type: "search",
+      },
+    });
+    expect(response.status()).toBe(200);
+    const result = await response.json();
+    const { data, error } = await siteFixture.admin
+      .from("crawler_events")
+      .select("bot_name, platform, bot_type, user_agent")
+      .eq("id", result.event_id)
+      .single();
+    expect(error).toBeNull();
+    expect(data).toEqual({ ...expected, user_agent: userAgent });
+  }
+});
+
 test("attributes identical page visits to the supplied site, not the shared domain", async ({
   request,
   siteFixture,

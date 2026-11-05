@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.118.0";
+import { classifyBot } from "../_shared/classify-bot.mjs";
 
 const SITE_ID_PATTERN = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 const MAX_PAYLOAD_CHARACTERS = 8192;
@@ -122,10 +123,13 @@ Deno.serve(async (request: Request) => {
       );
     }
 
+    // Derive classification from the HTTP header, never from submitted labels.
+    const classification = classifyBot(received.user_agent);
+
     // Persist first so a successful response always refers to a saved event.
     const { data: savedEvent, error: insertError } = await database
       .from(EVENTS_TABLE)
-      .insert({ ...received, page_path: pageUrl.pathname })
+      .insert({ ...received, ...classification, page_path: pageUrl.pathname })
       .select(ID_COLUMN)
       .single();
 
