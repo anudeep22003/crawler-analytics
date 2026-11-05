@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useSiteInstallation } from "@/hooks/use-site-installation";
 import { Button } from "@/components/ui/button";
 import { SiteActivity } from "@/components/site-activity";
+import { SiteExport } from "@/components/site-export";
 
 function SiteInstallation({
   siteId,
@@ -22,6 +23,7 @@ function SiteInstallation({
   return (
     <section className="space-y-4">
       <h1 className="text-2xl font-semibold">{site.domain}</h1>
+      <SiteExport siteId={site.id} />
       <SiteActivity siteId={site.id} />
       <h2 className="text-lg font-medium">Install tracking</h2>
       <ol className="list-decimal space-y-2 pl-5">
