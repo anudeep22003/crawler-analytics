@@ -1,6 +1,35 @@
 import { test, expect } from "./support/sites";
+import { createHash } from "node:crypto";
 
 const COLLECTOR_URL = "http://127.0.0.1:54321/functions/v1/track";
+const TEST_IP = "203.0.113.42";
+
+test("stores the hash of gateway IP metadata without returning the raw address", async ({
+  request,
+  siteFixture,
+}) => {
+  const response = await request.post(COLLECTOR_URL, {
+    headers: { "CF-Connecting-IP": TEST_IP, "User-Agent": "GPTBot" },
+    data: {
+      site_id: siteFixture.sites[0].id,
+      page_url: "http://127.0.0.1/",
+      ip: "198.51.100.7",
+      ip_hash: "client-supplied-value",
+    },
+  });
+  expect(response.status()).toBe(200);
+  const result = await response.json();
+  expect(JSON.stringify(result)).not.toContain(TEST_IP);
+  const { data, error } = await siteFixture.supabase
+    .from("crawler_events")
+    .select("ip_hash")
+    .eq("id", result.event_id)
+    .single();
+  expect(error).toBeNull();
+  expect(data?.ip_hash).toBe(
+    createHash("sha256").update(TEST_IP).digest("hex"),
+  );
+});
 
 test("classifies the HTTP header and ignores client-supplied classification", async ({
   request,
