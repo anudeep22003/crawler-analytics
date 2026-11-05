@@ -8,6 +8,7 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test:bots": "playwright test",
+    "test:unit": "node --test tests/unit/*.test.mjs",
     "seed:analytics": "node scripts/seed-analytics.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
