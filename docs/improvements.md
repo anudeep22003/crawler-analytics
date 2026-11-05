@@ -1,5 +1,16 @@
 # Improvements
 
+## Allow owners to delete a site
+
+Add a delete action on the dashboard or site page, with confirmation naming the
+domain and explaining that its recorded events will also be deleted. Enforce
+ownership through a DELETE grant and RLS policy, not just the UI. The existing
+event foreign key already cascades deletion from the site.
+
+After deletion, remove the site from the dashboard and reject events sent with
+its old site ID. Remind the owner to remove the snippet from their website.
+Verify that another user's site with the same domain and its events are unaffected.
+
 ## Replace plain IP hashing with scoped HMAC
 
 **Current decision:** v1 stores an unkeyed SHA-256 digest in `ip_hash`.
