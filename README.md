@@ -72,7 +72,7 @@ page's load-time snapshot; reload for fresh data. Buckets are hourly for 24h and
 daily for 7d/30d, anchored at the window start, with UTC labels and zero-filled gaps.
 These are recorded visits, including ordinary browsers, not classified bot totals.
 
-Create a small, persistent **local-only** demo dataset:
+Create a persistent **local-only** demo dataset:
 
 ```sh
 npm run supabase:start
@@ -82,9 +82,12 @@ npm run seed:analytics
 
 The script creates `analytics-demo@example.com` with password
 `Local-analytics-demo-123!` and a site named `analytics-demo.example`. It prints
-the site URL and verifies 24h=6, 7d=10, 30d=13 against its reference time.
-Its 14 events include one outside the 30-day window. Reruns replace only events
-marked `AnalyticsDemoSeed/1.0` on that demo site, leaving other data intact.
+the site URL and inserts **10,000 events** with random timestamps in the last
+30 days. User agents are chosen from the ten signatures in the spec's table plus
+`Unknown`, with at least one event for each. The script verifies database totals
+for every period and user agent against the generated data.
+Reruns replace all events on this dedicated demo site, including the old seed,
+while leaving other sites and accounts intact. Each run generates new random data.
 The data stays available until explicitly removed or the local database is reset.
 
 For a fixed reference time, use `npm run seed:analytics -- 2030-02-01T00:00:00Z`.
