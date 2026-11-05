@@ -71,7 +71,7 @@ Each `/s/{site_id}` page displays these sections together:
 - Platforms: horizontal bar chart ranked by visits.
 - Top pages: up to 10 paths ranked by visits (queries are grouped together).
 - Recent activity: latest 50 events with UTC time, page, bot, platform, type, and user agent.
-- Installation snippet and instructions below the analytics.
+- Expandable installation snippet and instructions at the top of the site page.
 
 Period (24h/7d/30d), platform, and bot-type filters apply to every analytics
 section. `hooks/use-site-activity.ts` makes **one `site_activity` RPC per selection**.
@@ -213,7 +213,8 @@ account isolation, the end boundary, empty output, and cancellation.
 
 ## Install the tracker
 
-Click a saved site on the dashboard to open `/s/{site_id}`. Copy its snippet and
+Click a saved site on the dashboard to open `/s/{site_id}`. Expand **Install tracking**
+at the top of the page. Copy its snippet and
 paste it once into the `<head>` of each tracked page (or a shared template).
 The shared `/tracker.js` file reads `data-site-id` and `data-collector-url`.
 The latter is derived from `NEXT_PUBLIC_SUPABASE_URL`; no secret is embedded.
