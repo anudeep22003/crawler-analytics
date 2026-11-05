@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { randomInt } from "node:crypto";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type User } from "@supabase/supabase-js";
 import { classifyBot } from "../supabase/functions/_shared/classify-bot.ts";
 
 const DEMO_EMAIL = "analytics-demo@example.com";
@@ -36,13 +36,13 @@ const local = JSON.parse(
 );
 if (local.API_URL !== "http://127.0.0.1:54321")
   throw new Error("Expected local Supabase");
-const admin = createClient(local.API_URL, local.SERVICE_ROLE_KEY, {
+const supabase = createClient(local.API_URL, local.SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
 });
 
-let owner;
+let owner: User | undefined;
 for (let page = 1; !owner; page++) {
-  const { data, error } = await admin.auth.admin.listUsers({
+  const { data, error } = await supabase.auth.admin.listUsers({
     page,
     perPage: 100,
   });
@@ -51,7 +51,7 @@ for (let page = 1; !owner; page++) {
   if (data.users.length < 100) break;
 }
 if (!owner) {
-  const { data, error } = await admin.auth.admin.createUser({
+  const { data, error } = await supabase.auth.admin.createUser({
     email: DEMO_EMAIL,
     password: DEMO_PASSWORD,
     email_confirm: true,
@@ -60,7 +60,7 @@ if (!owner) {
   owner = data.user;
 }
 
-const { data: site, error: siteError } = await admin
+const { data: site, error: siteError } = await supabase
   .from("sites")
   .upsert(
     { user_id: owner.id, domain: DEMO_DOMAIN },
@@ -91,71 +91,77 @@ const events = Array.from({ length: EVENT_COUNT }, (_, index) => {
 });
 
 // This site is reserved for seed data. Other sites and accounts are untouched.
-const { error: deleteError } = await admin
+const { error: deleteError } = await supabase
   .from("crawler_events")
   .delete()
   .eq("site_id", site.id);
 if (deleteError) throw deleteError;
 for (let offset = 0; offset < events.length; offset += INSERT_BATCH_SIZE) {
-  const { error } = await admin
+  const { error } = await supabase
     .from("crawler_events")
     .insert(events.slice(offset, offset + INSERT_BATCH_SIZE));
   if (error) throw error;
 }
 
-// Read as the demo user, exercising the same RPC permissions as the dashboard.
-const client = createClient(local.API_URL, local.ANON_KEY, {
-  auth: { persistSession: false },
-});
-const { error: loginError } = await client.auth.signInWithPassword({
-  email: DEMO_EMAIL,
-  password: DEMO_PASSWORD,
-});
-if (loginError) throw loginError;
-const totals = {};
-for (const [period, days] of [
-  ["24h", 1],
-  ["7d", 7],
-  ["30d", 30],
-]) {
-  const start = end.getTime() - days * DAY_MS;
-  const expected = events.filter(
-    (event) => Date.parse(event.timestamp) >= start,
-  ).length;
-  const { data, error } = await client.rpc("site_activity", {
-    p_site_id: site.id,
-    p_period: period,
-    p_end: end.toISOString(),
+// Verify with a separate signed-in Supabase instance so reads exercise RLS.
+async function verifySeedData(siteId: string) {
+  const supabase = createClient(local.API_URL, local.ANON_KEY, {
+    auth: { persistSession: false },
   });
-  if (error) throw error;
-  totals[period] = data.total;
-  if (data.total !== expected)
-    throw new Error(`${period}: expected ${expected}, received ${data.total}`);
+  const { error: loginError } = await supabase.auth.signInWithPassword({
+    email: DEMO_EMAIL,
+    password: DEMO_PASSWORD,
+  });
+  if (loginError) throw loginError;
+  const totals: Record<string, number> = {};
+  for (const [period, days] of [
+    ["24h", 1],
+    ["7d", 7],
+    ["30d", 30],
+  ] as const) {
+    const start = end.getTime() - days * DAY_MS;
+    const expected = events.filter(
+      (event) => Date.parse(event.timestamp) >= start,
+    ).length;
+    const { data, error } = await supabase.rpc("site_activity", {
+      p_site_id: siteId,
+      p_period: period,
+      p_end: end.toISOString(),
+    });
+    if (error) throw error;
+    totals[period] = data.total;
+    if (data.total !== expected)
+      throw new Error(
+        `${period}: expected ${expected}, received ${data.total}`,
+      );
+  }
+  // Verify each agent's persisted count without downloading a capped row result.
+  const distribution: Record<string, number | null> = {};
+  for (const userAgent of USER_AGENTS) {
+    const expected = events.filter(
+      (event) => event.user_agent === userAgent,
+    ).length;
+    const classification = classifyBot(userAgent);
+    const { count, error } = await supabase
+      .from("crawler_events")
+      .select("id", { count: "exact", head: true })
+      .eq("site_id", siteId)
+      .eq("user_agent", userAgent)
+      .eq("bot_name", classification.bot_name)
+      .eq("platform", classification.platform)
+      .eq("bot_type", classification.bot_type);
+    if (error) throw error;
+    if (count !== expected)
+      throw new Error(`${userAgent}: expected ${expected}, received ${count}`);
+    distribution[userAgent] = count;
+  }
+  console.log(
+    `Seeded ${EVENT_COUNT} events across the 30 days ending ${end.toISOString()}.`,
+  );
+  console.log("Verified period totals and all classification fields:", totals);
+  console.table(distribution);
+  console.log(`Local demo login: ${DEMO_EMAIL} / ${DEMO_PASSWORD}`);
+  console.log(`Site: /s/${siteId}`);
 }
-// Verify each agent's persisted count without downloading a capped row result.
-const distribution = {};
-for (const userAgent of USER_AGENTS) {
-  const expected = events.filter(
-    (event) => event.user_agent === userAgent,
-  ).length;
-  const classification = classifyBot(userAgent);
-  const { count, error } = await client
-    .from("crawler_events")
-    .select("id", { count: "exact", head: true })
-    .eq("site_id", site.id)
-    .eq("user_agent", userAgent)
-    .eq("bot_name", classification.bot_name)
-    .eq("platform", classification.platform)
-    .eq("bot_type", classification.bot_type);
-  if (error) throw error;
-  if (count !== expected)
-    throw new Error(`${userAgent}: expected ${expected}, received ${count}`);
-  distribution[userAgent] = count;
-}
-console.log(
-  `Seeded ${EVENT_COUNT} events across the 30 days ending ${end.toISOString()}.`,
-);
-console.log("Verified period totals and all classification fields:", totals);
-console.table(distribution);
-console.log(`Local demo login: ${DEMO_EMAIL} / ${DEMO_PASSWORD}`);
-console.log(`Site: /s/${site.id}`);
+
+await verifySeedData(site.id);
