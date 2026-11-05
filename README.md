@@ -250,6 +250,30 @@ directly. The collector uses Supabase's injected `SUPABASE_URL` and
 
 Run `npm run test:unit` for the classifier mapping and fallback tests.
 
+## Check an installation
+
+Expand **Install tracking**, enter the exact HTTP/HTTPS page URL, and click
+**Check installation**. The URL must match the registered hostname; ports and
+paths are supported, including `http://127.0.0.1:3001` for local testing.
+Allow the dashboard to open a new tab, then return to the dashboard for the result.
+
+`hooks/use-installation-check.ts` creates an owner-scoped `installation_checks`
+row, opens the page with `tracker_test=CHECK_ID`, and polls that row every two
+seconds for up to one minute. It does not poll on ordinary dashboard visits.
+The existing snippet already includes that parameter in its submitted page URL.
+The collector confirms only pending, unexpired checks belonging to the submitted
+site, and skips crawler-event insertion. Test visits therefore never enter charts
+or CSV exports. Owners cannot directly set or update confirmation timestamps.
+
+A new attempt always gets a new ID. Timeout or navigation ends polling; expired
+checks remain stored until their site is deleted (retention cleanup can follow).
+Success confirms a tracking signal from the checked page, not domain ownership
+or installation on every page. Existing sites can be rechecked after changes.
+
+Deploy the migration and updated `track` function **before** the frontend change.
+Older collectors do not recognize installation checks and would count test visits.
+Verify the local flow with `npm run test:bots -- tests/installation-check.spec.ts`.
+
 ## Headless tracking checks
 
 Start Docker and local Supabase, then serve the functions:
