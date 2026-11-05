@@ -234,7 +234,12 @@ The shared classifier in `supabase/functions/_shared/classify-bot.ts` populates
 spec's signatures case-insensitively within full user-agent strings. Unmatched
 traffic (including ordinary browsers) is `Unknown` / `Unknown` / `unknown`;
 this is unclassified traffic, not proof of an unknown bot. The spec's Extended
-control tokens are supported for synthetic traffic only. IP hashing remains deferred.
+control tokens are supported for synthetic traffic only. New events store an
+unkeyed SHA-256 IP hash when valid `CF-Connecting-IP` or fallback `X-Real-IP`
+metadata is available; otherwise `ip_hash` remains null. The collector does not
+persist raw IP metadata or add it to application logs/responses. Existing events
+and synthetic seed data are not backfilled. See [improvements](docs/improvements.md)
+for the planned site/day-scoped HMAC scheme and hosted header-verification work.
 Existing non-demo events are not backfilled; the seed recreates its demo events.
 No schema migration is needed for these already-existing columns.
 The public site ID and claimed hostname do not authenticate the sender or prove
