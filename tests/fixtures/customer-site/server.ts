@@ -1,7 +1,9 @@
 import { readFile } from "node:fs/promises";
 import { createServer } from "node:http";
 
-const page = await readFile(new URL("./index.html", import.meta.url));
+const pageFile =
+  process.env.HOSTED_TRACKER_TEST === "1" ? "./hosted.html" : "./index.html";
+const page = await readFile(new URL(pageFile, import.meta.url));
 const SITE_ID_PATTERN = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 
 createServer((request, response) => {
