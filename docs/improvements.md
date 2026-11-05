@@ -1,5 +1,17 @@
 # Improvements
 
+## Support multiple bot types in dashboard filters
+
+Replace the single-select bot-type filter with a multi-select for AI Training,
+AI Search, AI Assistant, and Unknown. Select all by default so users can exclude
+only Unknown while retaining every recognized bot type. Extend the analytics
+RPC to accept the selection and apply it consistently across dashboard sections.
+
+Unknown means no supported signature matched, even when a raw user-agent string
+is present; it includes unrecognized bots and ordinary browser traffic. Keep
+that distinction clear in the filter wording. CSV export should continue to
+include all recorded events regardless of dashboard filters.
+
 ## Add more login methods
 
 Offer additional Supabase Auth options, such as social login or email magic links,
