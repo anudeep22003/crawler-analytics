@@ -11,6 +11,7 @@ export function useAuth({ requireSession = false } = {}) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [signingUp, setSigningUp] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
@@ -53,6 +54,7 @@ export function useAuth({ requireSession = false } = {}) {
         : await supabase.auth.signInWithPassword(credentials);
       if (error) throw error;
       form.reset();
+      setPasswordVisible(false);
       if (signingUp && !data.session)
         setMessage("Check your email to confirm your account, then sign in.");
     } catch (error) {
@@ -87,8 +89,13 @@ export function useAuth({ requireSession = false } = {}) {
 
   function toggleMode() {
     setSigningUp(!signingUp);
+    setPasswordVisible(false);
     setError("");
     setMessage("");
+  }
+
+  function togglePasswordVisibility() {
+    setPasswordVisible((visible) => !visible);
   }
 
   return {
@@ -96,11 +103,13 @@ export function useAuth({ requireSession = false } = {}) {
     loading,
     busy,
     signingUp,
+    passwordVisible,
     error,
     message,
     isConfigured: Boolean(supabase),
     submit,
     signOut,
     toggleMode,
+    togglePasswordVisibility,
   };
 }

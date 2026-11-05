@@ -1,5 +1,6 @@
 "use client";
 
+import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,12 +13,14 @@ export default function LoginPage() {
     loading,
     busy,
     signingUp,
+    passwordVisible,
     error,
     message,
     isConfigured,
     submit,
     signOut,
     toggleMode,
+    togglePasswordVisibility,
   } = useAuth();
 
   return (
@@ -67,16 +70,37 @@ export default function LoginPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    autoComplete={
-                      signingUp ? "new-password" : "current-password"
-                    }
-                    required
-                    disabled={busy}
-                  />
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      name="password"
+                      type={passwordVisible ? "text" : "password"}
+                      autoComplete={
+                        signingUp ? "new-password" : "current-password"
+                      }
+                      required
+                      disabled={busy}
+                      className="pr-10"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-xs"
+                      className="absolute inset-y-0 right-1 my-auto"
+                      aria-label={
+                        passwordVisible ? "Hide password" : "Show password"
+                      }
+                      aria-controls="password"
+                      disabled={busy}
+                      onClick={togglePasswordVisibility}
+                    >
+                      {passwordVisible ? (
+                        <EyeOff aria-hidden="true" />
+                      ) : (
+                        <Eye aria-hidden="true" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
                 <Button type="submit" className="w-full" disabled={busy}>
                   {busy
