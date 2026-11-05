@@ -1,5 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.118.0";
-import { classifyBot } from "../_shared/classify-bot.mjs";
+import { classifyBot } from "../_shared/classify-bot.ts";
 
 const SITE_ID_PATTERN = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 const MAX_PAYLOAD_CHARACTERS = 8192;
@@ -41,7 +41,7 @@ const CORS_HEADERS = {
 };
 
 // Collector writes use server credentials; visiting browsers have no user session.
-const database = createClient(DATABASE_URL, DATABASE_SERVICE_KEY, {
+const supabase = createClient(DATABASE_URL, DATABASE_SERVICE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
@@ -105,7 +105,7 @@ Deno.serve(async (request: Request) => {
 
   try {
     // IDs choose the tracking property; domains only validate the reported page.
-    const { data: site, error: siteError } = await database
+    const { data: site, error: siteError } = await supabase
       .from(SITES_TABLE)
       .select(SITE_COLUMNS)
       .eq(ID_COLUMN, received.site_id)
@@ -127,7 +127,7 @@ Deno.serve(async (request: Request) => {
     const classification = classifyBot(received.user_agent);
 
     // Persist first so a successful response always refers to a saved event.
-    const { data: savedEvent, error: insertError } = await database
+    const { data: savedEvent, error: insertError } = await supabase
       .from(EVENTS_TABLE)
       .insert({ ...received, ...classification, page_path: pageUrl.pathname })
       .select(ID_COLUMN)

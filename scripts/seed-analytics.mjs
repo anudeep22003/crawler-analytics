@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { randomInt } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
-import { classifyBot } from "../supabase/functions/_shared/classify-bot.mjs";
+import { classifyBot } from "../supabase/functions/_shared/classify-bot.ts";
 
 const DEMO_EMAIL = "analytics-demo@example.com";
 const DEMO_PASSWORD = "Local-analytics-demo-123!";

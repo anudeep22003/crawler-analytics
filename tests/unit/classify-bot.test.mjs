@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { classifyBot } from "../../supabase/functions/_shared/classify-bot.mjs";
+import { classifyBot } from "../../supabase/functions/_shared/classify-bot.ts";
 
 const EXPECTED_BOTS = [
   ["GPTBot", "OpenAI", "training"],

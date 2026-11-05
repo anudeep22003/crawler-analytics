@@ -1,7 +1,14 @@
+export type BotType = "training" | "search" | "assistant" | "unknown";
+export type BotClassification = {
+  bot_name: string;
+  platform: string;
+  bot_type: BotType;
+};
+
 // Keep the supplied spec's signatures, including its legacy Claude-Web entry.
 // Google-Extended and Applebot-Extended are robots.txt controls; these matches
 // support the assignment's synthetic traffic, not verified crawler identities.
-const BOT_SIGNATURES = [
+const BOT_SIGNATURES: Array<BotClassification & { pattern: RegExp }> = [
   {
     pattern: /\bGPTBot\b/i,
     bot_name: "GPTBot",
@@ -70,14 +77,13 @@ const BOT_SIGNATURES = [
   },
 ];
 
-const UNKNOWN_CLASSIFICATION = {
+const UNKNOWN_CLASSIFICATION: BotClassification = {
   bot_name: "Unknown",
   platform: "Unknown",
   bot_type: "unknown",
 };
 
-/** @param {string} userAgent */
-export function classifyBot(userAgent) {
+export function classifyBot(userAgent: string): BotClassification {
   for (const { pattern, bot_name, platform, bot_type } of BOT_SIGNATURES) {
     if (pattern.test(userAgent)) return { bot_name, platform, bot_type };
   }

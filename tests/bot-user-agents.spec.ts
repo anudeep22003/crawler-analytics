@@ -1,5 +1,5 @@
 import { expect, test } from "./support/sites";
-import { classifyBot } from "../supabase/functions/_shared/classify-bot.mjs";
+import { classifyBot } from "../supabase/functions/_shared/classify-bot.ts";
 
 // All signatures from the brief's table and classification example.
 // Extended tokens are synthetic cases, not actual crawler HTTP identities.
