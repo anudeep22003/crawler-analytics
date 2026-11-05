@@ -16,12 +16,12 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: "node tests/fixtures/customer-site/server.mjs",
+      command: "node tests/fixtures/customer-site/server.ts",
       url: "http://127.0.0.1:3001",
       reuseExistingServer: false,
     },
     {
-      command: "node tests/fixtures/tracker-server.mjs",
+      command: "node tests/fixtures/tracker-server.ts",
       url: "http://127.0.0.1:3003/tracker.js",
       reuseExistingServer: false,
     },

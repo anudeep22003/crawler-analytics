@@ -5,7 +5,7 @@ const page = await readFile(new URL("./index.html", import.meta.url));
 const SITE_ID_PATTERN = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 
 createServer((request, response) => {
-  const url = new URL(request.url, "http://127.0.0.1:3001");
+  const url = new URL(request.url ?? "/", "http://127.0.0.1:3001");
   if (url.pathname !== "/") {
     response.writeHead(404).end("Not found");
     return;
