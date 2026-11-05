@@ -1,5 +1,97 @@
 # Improvements
 
+This backlog records deliberate v1 tradeoffs and future work, not a list of
+unimplemented acceptance criteria. Items explicitly beyond the assignment are
+marked below. Existing functionality should remain usable as each is introduced.
+
+## Add password recovery
+
+Add a forgot-password request and password-reset page using Supabase Auth.
+Handle expired links and configure local/hosted redirect URLs and email delivery.
+This was deliberately deferred while implementing email/password signup and login.
+
+## Collect visits without JavaScript — post-assignment scope
+
+The snippet cannot observe crawlers that fetch HTML without executing JavaScript.
+Explore server-side instrumentation or CDN/server-log ingestion as a later
+collection path. Preserve site attribution and avoid double-counting visits
+observed by multiple collectors. The brief explicitly places server-side
+tracking in v2 and excludes server-log analysis from the current scope.
+
+## Verify domain control
+
+Adding a domain and receiving a beacon do not establish publishing control.
+Introduce an account/site-specific DNS, hosted-file, or meta-tag challenge that
+our backend verifies independently. Keep domain verification distinct from the
+existing installation check, which confirms a particular tracking signal.
+
+## Verify crawler identities and maintain signatures
+
+User-agent matching identifies a claimed crawler identity, not its authenticity.
+Evaluate provider-supported verification methods separately from classification.
+Maintain signature sources and review dates, distinguish HTTP identities from
+robots.txt control tokens, and define how registry updates affect old events.
+Historical events could be reclassified from their stored user agents through
+an explicit, testable backfill rather than silently changing historical reports.
+
+## Browse beyond dashboard limits
+
+The dashboard deliberately returns only the top 10 page paths and latest 50
+matching events. Add pagination or drill-down views when users need to inspect
+more rows. Retain stable ordering, shared filter semantics, and owner isolation.
+The existing all-data CSV export remains available independently of those limits.
+
+## Add richer time controls — post-assignment scope
+
+Keep the current 24h/7d/30d presets as the baseline. Later, consider custom date
+ranges and a draggable chart window, with explicit bucket and timezone behavior.
+Custom ranges beyond the presets are expressly outside the assignment's scope.
+
+## Support larger and snapshot-consistent exports
+
+Exports currently buffer the entire CSV in browser memory, even though JSON
+rows are fetched and serialized in batches. Introduce server-side streaming or
+background export jobs if measured file sizes justify it. Define a consistent
+database snapshot if exports must remain unchanged during concurrent writes;
+the current upper cursor does not freeze backdated inserts, edits, or deletions.
+
+## Measure performance with a million events
+
+The current demo seed creates 10,000 events. Add configurable, repeatable bulk
+generation for a million-event dataset, including a case where those events all
+fall within the selected period. Measure query latency, response size, export
+memory, and browser responsiveness while checking totals and ownership isolation.
+Document an evidence-based capacity/upgrade path. Add rollups, caching, queues,
+or partitioning only when measurements demonstrate the need.
+
+## Clean up installation checks
+
+Checks expire after one minute, but expiry only prevents confirmation; it does
+not delete rows. Define a short retention period and scheduled cleanup for
+expired/completed attempts, preserving active checks and any needed diagnostics.
+
+## Automate Supabase deployments
+
+Vercel deploys the frontend from GitHub, while migrations and Edge Functions
+currently require manual commands. Add CI checks and a controlled backend
+deployment workflow with separate environments and server-only credentials.
+Preserve migration/function/frontend rollout ordering and plan recovery when
+one deployment step fails.
+
+## Support more flexible site identities
+
+Sites are currently unique per owner and exact hostname. `www.example.com` and
+`example.com` are separate, while ports are excluded. Later, define explicit
+aliases or tracking properties for subdomains, ports, environments, or website
+sections. Keep site UUID attribution and avoid silently merging historical data.
+
+## Automate installation verification
+
+The current check opens a user-selected page in their browser. A future hosted
+browser worker could perform checks without opening a tab, or inspect multiple
+pages. Account for browser infrastructure, timeouts, and safe URL fetching.
+One successful page check must not be presented as proof of site-wide coverage.
+
 ## Support multiple bot types in dashboard filters
 
 Replace the single-select bot-type filter with a multi-select for AI Training,
