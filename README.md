@@ -1,5 +1,13 @@
 # Pixel Crawler Analytics
 
+Watch the captioned walkthrough: authentication, tracker installation checks,
+site analytics, filters, and CSV export. Recorded entirely locally with synthetic
+data; no production traffic or credentials are shown.
+
+[![Watch the captioned Crawler Analytics demo](docs/demo/thumbnail.jpg)](docs/demo/crawler-analytics.mp4?raw=1)
+
+[Download video](docs/demo/crawler-analytics.mp4?raw=1) · [Captions (SRT)](docs/demo/crawler-analytics.srt)
+
 The public entry point at `/` displays the email/password login page, also
 available at `/login`. Signed-in users go to `/dashboard` to add sites.
 The dashboard requires a session; Postgres RLS enforces data ownership.
