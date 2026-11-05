@@ -24,6 +24,13 @@ const INTERNAL_ERROR_STATUS = 500;
 
 const SITES_TABLE = "sites";
 const EVENTS_TABLE = "crawler_events";
+const CHECKS_TABLE = "installation_checks";
+const CHECK_PARAMETER = "tracker_test";
+const CHECK_SITE_COLUMN = "site_id";
+const CHECK_RECEIVED_COLUMN = "received_at";
+const CHECK_EXPIRY_COLUMN = "expires_at";
+const INVALID_CHECK_ERROR =
+  "Invalid, expired, or already completed installation check";
 const SITE_COLUMNS = "id, domain";
 const ID_COLUMN = "id";
 const DATABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -121,6 +128,41 @@ Deno.serve(async (request: Request) => {
           status: BAD_REQUEST_STATUS,
           headers: CORS_HEADERS,
         },
+      );
+    }
+
+    // Existing snippets already send the full page URL, including the check ID.
+    // Handle these visits separately so no analytics query needs a test-event filter.
+    if (pageUrl.searchParams.has(CHECK_PARAMETER)) {
+      const checkId = pageUrl.searchParams.get(CHECK_PARAMETER)!;
+      if (!SITE_ID_PATTERN.test(checkId)) {
+        return Response.json(
+          { error: INVALID_CHECK_ERROR },
+          { status: BAD_REQUEST_STATUS, headers: CORS_HEADERS },
+        );
+      }
+
+      const receivedAt = new Date().toISOString();
+      const { data: check, error: checkError } = await supabase
+        .from(CHECKS_TABLE)
+        .update({ received_at: receivedAt })
+        .eq(ID_COLUMN, checkId)
+        .eq(CHECK_SITE_COLUMN, site.id)
+        .is(CHECK_RECEIVED_COLUMN, null)
+        .gt(CHECK_EXPIRY_COLUMN, receivedAt)
+        .select(ID_COLUMN)
+        .maybeSingle();
+      if (checkError) throw checkError;
+      if (!check) {
+        return Response.json(
+          { error: INVALID_CHECK_ERROR },
+          { status: BAD_REQUEST_STATUS, headers: CORS_HEADERS },
+        );
+      }
+
+      return Response.json(
+        { check_id: check.id, received_at: receivedAt },
+        { headers: CORS_HEADERS },
       );
     }
 
